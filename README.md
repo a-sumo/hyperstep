@@ -8,6 +8,8 @@ Here's is one of the model outputs:
 
  [Agent Self Regulation Example 1](https://user-images.githubusercontent.com/75185852/174502800-3452d939-b6da-4998-90c9-3c02c7bb5346.mp4)
 
-## [Locomotion]
+## Locomotion (Drums)
 
-## [Motion Fields]
+## Locomotion (Synths)
+
+## Interactive Motion Fields
