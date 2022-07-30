@@ -7,7 +7,7 @@ Process and Agent Based Music.
  The direction of these effects has been determined arbitrarily, although I believe there is a *algebra of processes* that can be derived from real-world observations.  
  I have done my best to derive the magnitude of the actions' effects through the analysis of audio features. 
  
- The direction and magnitude of the actions' effects can be greatly improved by integrating algorithms that estimate impact forces from sound such as [3]
+ The direction and magnitude of the actions' effects can be greatly improved by integrating algorithms that estimate impact forces from sound such as [3].
   
 Here is one of the model's outputs:
 <details>
