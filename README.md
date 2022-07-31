@@ -21,7 +21,7 @@ The self-regulation model is fairly superficial and results in an implementation
 *Daniel Shawcross Wilkerson, [Harmony Explained: Progress Towards A Scientific Theory of Music (2012)](https://arxiv.org/abs/1202.4212v1)*
 
 A more appealing approach would be to consider drums as locomotive processes.[1]
-By:
+By:  
 -providing an agent with a goal in space and by using drums as actions that induce motion
 -carefully designing the agents' environment, 
 we should derive rich and organic drum patterns.  
