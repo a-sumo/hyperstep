@@ -20,7 +20,7 @@ The self-regulation model is fairly superficial and results in an implementation
 **"The more factored a theory and the more emergent the observed phenomena from the theory, the more satisfying the theory."**  
 *Daniel Shawcross Wilkerson, [Harmony Explained: Progress Towards A Scientific Theory of Music (2012)](https://arxiv.org/abs/1202.4212v1)*
 
-A more appealing approach would be to consider drums as locomotive processes.[1]
+A more appealing approach would be to consider drums as locomotive processes.[1]  
 By:  
 -providing an agent with a goal in space and by using drums as actions that induce motion
 -carefully designing the agents' environment, 
