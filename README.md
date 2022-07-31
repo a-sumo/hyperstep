@@ -30,7 +30,7 @@ The main advantage is that the user would compose in a semantically rich and int
 
 I think this approach shows promise to be more satisfactory but it imposes the setup of a simulation environment and the refinement algorithms that recover semantically relevant physical properties from sounds.  
 
-The former is something I'm working on using an ECS framework.
+The former is something I'm working on using an Entity Component System(ECS) framework.
 
 For the latter, I prefer to couch potato sit and wait for the research area to be sufficiently mature.[2]
 
