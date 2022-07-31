@@ -22,7 +22,7 @@ The self-regulation model is fairly superficial and results in an implementation
 
 A more appealing approach would be to consider drums as locomotive processes.[1]  
 By:  
--providing an agent with a goal in space and by using drums as actions that induce motion
+-providing an agent with a goal in space and by using drums as actions that induce motion  
 -carefully designing the agents' environment, 
 we should derive rich and organic drum patterns.  
 
