@@ -22,17 +22,18 @@ The self-regulation model is fairly superficial and results in an implementation
 
 A more appealing approach would be to consider drums as locomotive processes.[1]  
 By:  
--providing an agent with a goal in space and by using drums as actions that induce motion  
--carefully designing the agents' environment, 
+-providing an agent with a goal in space,
+-using drums as actions that induce motion,  
+-carefully designing the agents' environment,  
 we should derive rich and organic drum patterns.  
 
 The main advantage is that the user would compose in a semantically rich and intuitive space(3D world) populated by intuitive objects (entities) rather than a space of buttons, knobs and MIDI files.   
 
-I think this approach shows promise to be more satisfactory but it imposes the setup of a simulation environment and the refinement algorithms that recover semantically relevant physical properties from sounds.  
+However, this approach imposes the setup of a simulation environment and the refinement algorithms that recover semantically relevant physical properties from sounds.  
 
-The former is something I'm working on using an Entity Component System(ECS) framework.
+The former is something I'm working on, using an Entity Component System(ECS) framework with [Bevy](https://bevyengine.org/). 
 
-For the latter, I prefer to couch potato sit and wait for the research area to be sufficiently mature.[2]
+For the latter, I prefer to sit on a couch like a potato[2] and wait for the research area to be sufficiently mature.
 
 [1][Yuri Broze. Animacy, Anthropomimesis, and Musical Line(2013)](https://etd.ohiolink.edu/apexprod/rws_etd/send_file/send?accession=osu1367425698)
 
