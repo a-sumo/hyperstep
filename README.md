@@ -9,9 +9,9 @@ Process and Agent Based Music.
  
  The direction and magnitude of the actions' effects can be greatly improved by integrating algorithms that estimate impact forces from sound such as Diffimpact. [[3](#diffimpact)]
   
-Here is one of the model's outputs:
+Here are some of the model's outputs:
 <details>
-  <summary>Agent Self Regulation Example </summary>
+  <summary>Examples:</summary>
   
    [Example 1](https://user-images.githubusercontent.com/75185852/174502800-3452d939-b6da-4998-90c9-3c02c7bb5346.mp4)
    [Example 2](https://user-images.githubusercontent.com/75185852/188247039-9e68f585-80b3-4030-90c9-8cce4db12a0c.mp4)
