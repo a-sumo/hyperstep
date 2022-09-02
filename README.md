@@ -13,8 +13,14 @@ Here is one of the model's outputs:
 <details>
   <summary>Agent Self Regulation Example </summary>
   
-   [Agent Self Regulation Example 1](https://user-images.githubusercontent.com/75185852/174502800-3452d939-b6da-4998-90c9-3c02c7bb5346.mp4)
-</details>
+   [Example 1](https://user-images.githubusercontent.com/75185852/174502800-3452d939-b6da-4998-90c9-3c02c7bb5346.mp4)
+   [Example 2](https://user-images.githubusercontent.com/75185852/188247039-9e68f585-80b3-4030-90c9-8cce4db12a0c.mp4)
+   [Example 3](https://user-images.githubusercontent.com/75185852/188247570-71d7c998-c87e-41f2-b4ac-0786fa5533e7.mp4)
+</details
+
+
+
+>
 
 The self-regulation model is fairly superficial and results in an implementation that is complicated and hard to control.  
 **"The more factored a theory and the more emergent the observed phenomena from the theory, the more satisfying the theory."**  
@@ -27,7 +33,7 @@ The main advantage is that the user would compose in a semantically rich and int
 
 However, this approach imposes the setup of a simulation environment and the refinement algorithms that recover semantically relevant physical properties from sounds.  
 
-The former is something I'm working on, using an Entity Component System(ECS) framework with [Bevy](https://bevyengine.org/). 
+The former is something I'm currently working on.
 
 For the latter, I prefer to sit on a couch like a potato [[2](#pick-problems)] and wait for the research area to be sufficiently mature.
 <a id="animacy">
