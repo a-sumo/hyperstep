@@ -15,9 +15,9 @@ Here are some of the model's outputs:
   
    [Example 1](https://user-images.githubusercontent.com/75185852/174502800-3452d939-b6da-4998-90c9-3c02c7bb5346.mp4)
   
-   [Example 2](https://user-images.githubusercontent.com/75185852/188247039-9e68f585-80b3-4030-90c9-8cce4db12a0c.mp4)
+   [Example 2](https://user-images.githubusercontent.com/75185852/188287025-1554ed5f-28c0-43af-9a73-7ea24ecfda6a.mp4)
   
-   [Example 3](https://user-images.githubusercontent.com/75185852/188247570-71d7c998-c87e-41f2-b4ac-0786fa5533e7.mp4)
+   [Example 3](https://user-images.githubusercontent.com/75185852/188287983-2b5c1b88-3d5a-4941-b9a1-c1044aa83991.mp4)
   
 </details
 
