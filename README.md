@@ -34,7 +34,7 @@ By providing an agent with a *goal* in space, coupled with the use of drums as *
 
 The main advantage is that the user would compose in a semantically rich and intuitive space(3D world) populated by intuitive objects (entities) rather than a space of buttons, knobs and MIDI files.   
 
-However, this approach imposes the setup of a simulation environment and the refinement algorithms that recover semantically relevant physical properties from sounds.  
+However, this approach imposes the setup of a simulation environment and the refinement of algorithms that recover semantically relevant physical properties from sounds.  
 
 The former is something I'm currently working on.
 
