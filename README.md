@@ -38,7 +38,7 @@ However, this approach imposes the setup of a simulation environment and the ref
 
 The former is something I'm currently working on. Feel free to contact me at armandsumo@gmail.com to discuss this and more!
 
-For the latter, I prefer to sit on a couch like a potato [[2](#pick-problems)] and wait for the research area to be sufficiently mature.
+For the latter, I prefer to wait [[2](#pick-problems)] for the research area to be sufficiently mature.
 <a id="animacy">
   
   [1][Yuri Broze. Animacy, Anthropomimesis, and Musical Line(2013)](https://etd.ohiolink.edu/apexprod/rws_etd/send_file/send?accession=osu1367425698)
