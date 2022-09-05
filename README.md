@@ -36,7 +36,7 @@ The main advantage is that the user would compose in a semantically rich and int
 
 However, this approach imposes the setup of a simulation environment and the refinement of algorithms that recover semantically relevant physical properties from sounds.  
 
-The former is something I'm currently working on. Feels free to contact me at armandsumo@gmail.com to discuss this and more!
+The former is something I'm currently working on. Feel free to contact me at armandsumo@gmail.com to discuss this and more!
 
 For the latter, I prefer to sit on a couch like a potato [[2](#pick-problems)] and wait for the research area to be sufficiently mature.
 <a id="animacy">
