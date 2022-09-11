@@ -7,7 +7,7 @@ Process and Agent Based Music.
  The direction of these effects has been determined arbitrarily, although I believe there is a *grammar of processes* that can be derived from real-world observations.  
  I have done my best to derive the magnitude of the actions' effects through the analysis of audio features. 
  
- The direction and magnitude of the actions' effects can be greatly improved by integrating algorithms that estimate impact forces from sound such as Diffimpact. [[3](#diffimpact)]
+ The direction and magnitude of the actions' effects can be greatly improved by integrating algorithms that estimate impact forces from sound such as Diffimpact. [[2](#diffimpact)]
   
 Here are some of the model's outputs:
 <details>
@@ -42,15 +42,9 @@ However, this approach imposes the setup of a simulation environment and the ref
   
 </a>
 
-<a id="pick-problems">
-  
-  [2][How to pick problems, Doug L. James (SIGGRAPH 2021)](https://youtu.be/fCE5tcnB3co?t=823)
-  
-</a>
-
 <a id="diffimpact">
   
-  [3][Samuel Clarke, Negin Heravi, Mark Rau, Ruohan Gao, Jiajun Wu, Doug James, Jeannette Bohg,  
+  [2][Samuel Clarke, Negin Heravi, Mark Rau, Ruohan Gao, Jiajun Wu, Doug James, Jeannette Bohg,  
 DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](https://openreview.net/forum?id=wVIqlSqKu2D)
   
 </a>
