@@ -4,13 +4,25 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import Stats from 'three/examples/jsm/libs/stats.module';
-
+import * as YUKA from 'yuka'
 
 let camera, 
   scene, 
   renderer, 
   controls, 
-  stats
+  stats,
+  raycaster
+
+let vehicle,
+  target,
+  planeMesh,
+  entityManager,
+  seekBehavior,
+  arriveBehavior,
+  pointer
+
+
+
 
 function init() {
   scene = new THREE.Scene();
@@ -39,12 +51,64 @@ function init() {
   controls.enablePan = false;
   controls.update();
 
+  // Add vehicle
+  const vehicleGeometry = new THREE.ConeGeometry(0.1, 0.5, 8);
+  vehicleGeometry.rotateX(Math.PI * 0.5);
+  const vehicleMaterial = new THREE.MeshNormalMaterial();
+  const vehicleMesh = new THREE.Mesh(vehicleGeometry, vehicleMaterial);
+
+  vehicleMesh.matrixAutoUpdate = false;
+  scene.add(vehicleMesh);
+
+
+  vehicle = new YUKA.Vehicle();
+  vehicle.setRenderComponent(vehicleMesh, sync);
+
+  // The entity manager tracks and updates
+  // the state of our scene entities
+  entityManager = new YUKA.EntityManager();
+  entityManager.add(vehicle);
+
+  target = new YUKA.GameEntity();
+  // target.setRenderComponent(targetMesh, sync);
+  entityManager.add(target);
+
+  // Define vehicle behavior
+
+  seekBehavior = new YUKA.SeekBehavior(target.position);
+  vehicle.steering.add(seekBehavior);
+
+  arriveBehavior = new YUKA.ArriveBehavior(target.position, 3, 0.5);
+  vehicle.steering.add(arriveBehavior);
+
+  vehicle.position.set(-3, 0, -3);
+
+  vehicle.maxSpeed = 1.5;
+
+  pointer = new THREE.Vector2();
+
+  window.addEventListener('pointerMove', onPointerMove);
+
+  const planeGeo = new THREE.PlaneGeometry(25, 25);
+  const planeMat = new THREE.MeshBasicMaterial({visible: false});
+  planeMesh = new THREE.Mesh(planeGeo, planeMat);
+  planeMesh.rotation.x = -0.5 * Math.PI;
+  scene.add(planeMesh);
+  planeMesh.name = 'plane';
+
+  raycaster = new THREE.Raycaster();
+
+
   // Add helpers
   addHelpers(scene);
 
-  render();
+  renderer.render(scene, camera);
 
+  document.addEventListener( 'pointermove', onPointerMove );
   window.addEventListener( 'resize', onWindowResize );  
+  window.addEventListener('click', onMouseClick);
+
+
 }
 
 function render() {
@@ -69,6 +133,23 @@ function onWindowResize() {
   render();
 
 }
+function onMouseClick() {
+
+  raycaster.setFromCamera(pointer, camera);
+  const intersects = raycaster.intersectObjects(scene.children);
+  for(let i = 0; i < intersects.length; i++){
+    if(intersects[i].object.name === 'plane'){
+      target.position.set(intersects[i].point.x, 0, intersects[i].point.z);
+    }
+  }
+}
+
+function onPointerMove( event ) {
+
+  pointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+  pointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+}
 
 function addHelpers (scene) {
   const gridHelper = new THREE.GridHelper( 10, 10);
@@ -81,4 +162,18 @@ function addHelpers (scene) {
   document.body.appendChild( stats.dom );
 }
 
-init()
+function sync(entity, renderComponent){
+  renderComponent.matrix.copy(entity.worldMatrix);
+}
+
+const time = new YUKA.Time();
+
+function animate(){
+  const delta = time.update().getDelta();
+  entityManager.update(delta);
+  renderer.render(scene, camera);
+  stats.update();
+}
+
+init();
+renderer.setAnimationLoop(animate);
