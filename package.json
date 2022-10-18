@@ -1,5 +1,5 @@
 {
-  "homepage": "https://realityslice.github.io/flow/",
+  "homepage": "https://a-sumo.github.io/hyperstep/",
   "scripts": {
     "build": "webpack --mode=production --config ./bundler/webpack.prod.js",
     "dev": "webpack serve --mode=development --config ./bundler/webpack.dev.js",
