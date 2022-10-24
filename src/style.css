@@ -1,58 +1,75 @@
+* {
+  box-sizing: border-box;
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  background-color: rgba(255, 255, 255, 1);
-  color: #fff;
-  font-family: Monospace;
-  font-size: 13px;
-  line-height: 24px;
-  overflow: hidden;
+  padding: 20px;
+  font: 300 16px/1.5 "Roboto", Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+  color: #111;
+  background-color: #fdfdfd;
+  -webkit-font-smoothing: antialiased;
+  width: 100%;
+  max-width: 1000px;
 }
 
-button {
-  cursor: pointer;
+[disabled] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+section {
+  background: #F2F2F2;
+  padding: 14px;
+  margin-bottom: 48px;
+}
+
+a {
+  color: #2a7ae2;
+  text-decoration: none;
+}
+a:visited {
+  color: #1756a9;
+}
+a:hover {
+  color: #111;
+  text-decoration: none;
+}
+
+button, .button {
+  font-family: "Roboto", Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
   text-transform: uppercase;
-  touch-action: manipulation;
-  display: block;
-  width: 100%;
-  font-size: 2em;
-}
-
-#overlay {
-  position: absolute;
-  z-index: 2;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.7);
-}
-
-#overlay-button {
-  background: #ffffff;
-  border: 0;
-  color: #000000;
-  padding: 16px 20px;
-  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 4px 14px;
+  margin-right: 8px;
+  background: transparent;
   cursor: pointer;
 }
+button:hover, .button:hover {
+  background: #6FC9C6;
+  color: white;
+}
+button, .button, textarea {
+  outline: none;
+  border: 3px solid #222;
+  color: #222;
+  background: white;
+}
 
-#stage {
-  position: relative;
+.player-container {
+  margin-top: 14px;
+  margin-bottom: 24px;
 }
-#chart-1{
-  z-index: 3;
-  display: block;
+.visualizer-container {
+  background: white;
+  padding: 14px;
+  overflow-x: auto;
+  border: 3px solid black;
+  margin-top: -3px;  /* so that the border doesn't overlap with the play buttons */
 }
 
-#game {
-  z-index: 2;
-  width: 100%;
-  height:400px;
-  position: relative;
-}
-#background-layer {
-  z-index: 1;
-}
+
+
+
