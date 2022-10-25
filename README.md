@@ -1,7 +1,8 @@
 # hyperstep
 
 Process and Agent Based Music.
-## [Agent Self Regulation](https://github.com/a-sumo/hyperstep/blob/main/agent_self_regulation.ipynb)
+## [Agent Self Regulation](https://github.com/a-sumo/hyperstep/blob/main/colab/agent_self_regulation.ipynb)
+
   In this notebook, I attempt to recreate organic temporal patterns and syncopation by modeling composition as an agent regulating internal properties through a set of sound-associated actions. The key insight is to assign opposite effects to kicks and snare/claps.
   
  The direction of these effects has been determined arbitrarily, although I believe there is a *grammar of processes* that can be derived from real-world observations.  
