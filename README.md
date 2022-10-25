@@ -1,8 +1,10 @@
 # hyperstep
+## Intuitive and interactive representations for music production. 
 
-Process and Agent Based Music.
-## [Agent Self Regulation](https://github.com/a-sumo/hyperstep/blob/main/colab/agent_self_regulation.ipynb)
 
+## [Organic drums through agent self-regulation](https://github.com/a-sumo/hyperstep/blob/main/colab/agent_self_regulation.ipynb)
+<details>
+  <summary>Project Description</summary>
   In this notebook, I attempt to recreate organic temporal patterns and syncopation by modeling composition as an agent regulating internal properties through a set of sound-associated actions. The key insight is to assign opposite effects to kicks and snare/claps.
   
  The direction of these effects has been determined arbitrarily, although I believe there is a *grammar of processes* that can be derived from real-world observations.  
@@ -20,11 +22,7 @@ Here are some of the model's outputs:
   
    [Example 3](https://user-images.githubusercontent.com/75185852/188287983-2b5c1b88-3d5a-4941-b9a1-c1044aa83991.mp4)
   
-</details
-
-
-
->
+</details>
 
 The self-regulation model is fairly superficial and results in an implementation that is complicated and hard to control.  
 **"The more factored a theory and the more emergent the observed phenomena from the theory, the more satisfying the theory."**  
@@ -49,3 +47,6 @@ However, this approach imposes the setup of a simulation environment and the ref
 DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](https://openreview.net/forum?id=wVIqlSqKu2D)
   
 </a>
+</details>
+ 
+## [Coming soon: Volumetric synth control]
