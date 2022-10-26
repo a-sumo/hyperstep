@@ -1,5 +1,5 @@
 # hyperstep
-## Intuitive and interactive representations for music production. 
+## [WIP] Intuitive and interactive representations for music production. 
 
 
 ## [Organic drums through agent self-regulation](https://github.com/a-sumo/hyperstep/blob/main/colab/agent_self_regulation.ipynb)
@@ -49,4 +49,4 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
 </a>
 </details>
  
-## [Coming soon: Volumetric synth control]
+### [Coming soon: Volumetric synth control]
