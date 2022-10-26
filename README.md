@@ -49,4 +49,5 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
 </a>
 </details>
  
-### [Coming soon: Volumetric synth control]
+### Coming soon: Volumetric synth control
+<img width="500" alt="vol_tone" src="https://user-images.githubusercontent.com/75185852/198096950-85e0004a-661a-43d3-9178-e0c14a4eb1d0.png">
