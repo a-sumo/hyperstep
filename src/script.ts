@@ -4,11 +4,14 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
+import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
 import * as mm from '@magenta/music/';
 import { SpecParams } from '@magenta/music/esm/core/audio_utils';
 import {loadAudioFromFile, resampleAndMakeMono, melSpectrogram, powerToDb} from '@magenta/music/esm/core/audio_utils';
-import { Scene } from 'three';
 import * as tf from '@tensorflow/tfjs-backend-webgl';
+import { Vector3 } from 'three';
+
+
 if ( WebGL.isWebGL2Available() === false ) {
 
   document.body.appendChild( WebGL.getWebGL2ErrorMessage() );
@@ -26,12 +29,13 @@ let planeMesh: THREE.Mesh,
   debugPlaneMesh: THREE.Mesh,
   volumeMesh: THREE.Mesh,
   pointer: THREE.Vector2,
-  specTexture: THREE.DataTexture
+  specTexture: THREE.DataTexture,
+  clock: THREE.Clock
 
 // Volume constants
-const x_dim = 200;
-const y_dim = 200;
-const z_dim = 1;
+const x_dim = 4;
+const y_dim = 4;
+const z_dim = 4;
 const x_scale = 1;
 const y_scale = 1;
 const z_scale = 1;
@@ -48,7 +52,7 @@ const fileInput = document.getElementById('test_fileInput') as HTMLInputElement;
 addEventListener('change', () => loadFile(fileInput, 'test'));
 
 function loadFile(inputElement: HTMLInputElement, prefix: string) {
-  document.getElementById(`${prefix}_fileBtn`).setAttribute('disabled', '');
+  //document.getElementById(`${prefix}_fileBtn`).setAttribute('disabled', '');
   const audioBuffer = loadAudioFromFile(inputElement.files[0]);
   return audioBuffer
   .then(
@@ -73,9 +77,19 @@ async function preprocessAudio(audioBuffer: AudioBuffer) {
     nMels: MEL_SPEC_BINS,
     // temporal resolution
     nFft: 2048,
-    fMin: 20,
+    fMin: 30,
   }));
 }
+
+// Define Interface 
+interface CurveData {
+  positions: Array<Vector3>;
+  tangents: Array<Vector3>;
+  normals: Array<Vector3>;  
+  binormals: Array<Vector3>; 
+  numPoints: number;
+};
+
 // Shaders 
 const raycastVertexShader = /* glsl */`
 uniform vec3 volume_scale;
@@ -94,10 +108,13 @@ precision highp int;
 precision highp float;
 uniform highp sampler3D volume;
 uniform highp sampler2D spectrum;
+uniform highp sampler2D curve_data;
 uniform ivec3 volume_dims;
+uniform vec3 volume_scale;
 uniform float dt_scale;
 uniform vec3 aabb_min;
 uniform vec3 aabb_max;
+uniform float time;
 in vec3 vray_dir;
 flat in vec3 transformed_eye;
 
@@ -136,26 +153,27 @@ vec4 color_transfer(float intensity)
   float alpha = (exp(intensity) - 1.0) / (exp(1.0) - 1.0);
   return vec4(intensity * high + (1.0 - intensity) * low, alpha);
 }
-vec4 dist_transfer(float dist){
-  float res = 0.0;
-  if (dist > 0.0){
-    res = abs(dist);
-  }
-  vec3 high = vec3(1.0, 1.0, 1.0);
-  vec3 low = vec3(0.0, 0.0, 0.0);
-  float alpha = (exp(res) - 1.0) / (exp(1.0) - 1.0);
-  return vec4(res * high + (1.0 - res) * low, alpha);
-}
 
 float sdSphere( vec3 p, vec3 offset, float scale )
 {
   float dist = length(p - offset) - scale;
   return 1.0 - clamp(dist, 0.0, 1.0);
 }
-float sdBox( vec3 p, vec3 b )
-{
-  vec3 q = abs(p) - b;
-  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+float distCurve(vec3 p){
+  float min_dist = 10.0;
+  float du = 0.2;
+  float u = 0.0;
+  while(u < 1.0 ){
+    vec2 v_pos = vec2(u, 0.0);
+    // point normals are stored in the 3rd row of the texture
+    // whose UV.v coordinate is 0,75
+    vec2 sample_normal = vec2(u,0.75);
+    vec3 dist_vec = texture(curve_data, v_pos).rgb - p;
+    min_dist = min(min_dist, length(dist_vec));
+    u += du;
+  }
+
+  return min_dist;
 }
 void main(void) {
 	vec3 ray_dir = normalize(vray_dir);
@@ -167,9 +185,6 @@ void main(void) {
 	t_hit.x = max(t_hit.x, 0.0);
 	vec3 dt_vec = 1.0 / (vec3(volume_dims) * abs(ray_dir));
 	float dt = dt_scale * min(dt_vec.x, min(dt_vec.y, dt_vec.z));
-	// float offset = wang_hash(int(gl_FragCoord.x + 640.0 * gl_FragCoord.y));
-  // computing the offset for each fragment is too expensive
-  // vec3 p = transformed_eye + (t_hit.x + offset * dt) * ray_dir;
 	vec3 p = transformed_eye + (t_hit.x + dt) * ray_dir;
   int step = 0;
   int maxStep = 100 ;
@@ -177,25 +192,27 @@ void main(void) {
     if (step > maxStep){
       break;
     }
-    //float val = texture(volume, p).r;
-    //float val = texture(spectrum, p.xy).r;
-    //vec4 val_color = vec4(color_transfer(val).rgb, 1.0);
-    // vec4 val_color = texture(spectrum, p.xy);
-    float dist = sdSphere(p, vec3(0.0), 0.6);
-    // sample spectrogram at sdf value 
-    vec4 spec_val = texture(spectrum, vec2(0.0, dist));
-    vec4 val_color = vec4(spec_val.r,0.0,0.0,1.0);
-
+    // use distance function
+    // infinite tube
+    // float dist = length(p.xy)-0.01;
+    // sphere 
+    // float dist = clamp(length(p),0.0,1.0);
+    // curve 
+    float dist = distCurve(p) * 1.0;
+    // sample spectrogram
+    vec4 spec_val = texture(spectrum, vec2(p.z + 0.5 , 0.03 / dist));
+    vec4 val_color = vec4(pow(spec_val.r,10.0),pow(spec_val.r,2.0),0.0 * pow(spec_val.r,0.0),spec_val.r);
+    //vec4 val_color = vec4(pow(dist,8.0),dist,dist,dist);
     // Opacity correction
     val_color.w = 1.0 - pow(1.0 - val_color.w, dt_scale);
 
     // Alpha-blending
     color.xyz += (1.0 - color.w) * val_color.w * val_color.xyz;
     color.w += (1.0 - color.w) * val_color.w;
-    if (color.w > 0.99) {
-      break;
-    }
-    if (val_color.w < 0.1) {
+    // if (color.w > 0.99) {
+    //   break;
+    // }
+    if (val_color.w < 0.0) {
       discard;
     }
 		p += ray_dir * dt;
@@ -205,6 +222,7 @@ void main(void) {
   color.y = linear_to_srgb(color.y);
   color.z = linear_to_srgb(color.z);
   gl_FragColor = color;
+  //gl_FragColor = vec4(abs(texture(curve_data,vec2(1.0,0.0)).rgb) * 255.0, 1.0);
 
 }
 `;
@@ -253,16 +271,47 @@ function init() {
   vehicleMesh.matrixAutoUpdate = false;
   // scene.add(vehicleMesh);
 
-  var planeGeo1 = new THREE.PlaneGeometry(10, 10);
+  var planeGeo1 = new THREE.PlaneGeometry(2, 2);
   var planeMat1 = new THREE.MeshBasicMaterial({ map: createDataTexture(x_dim, y_dim), side: THREE.DoubleSide});
   // var planeMat1 = new THREE.MeshBasicMaterial({ map: createDataTexture(x_dim, y_dim), side: THREE.DoubleSide});
   debugPlaneMesh = new THREE.Mesh(planeGeo1, planeMat1);
-  debugPlaneMesh .position.set( 0, 0, -1 );
+  debugPlaneMesh .position.set( -2, 0, -1 );
   scene.add(debugPlaneMesh);
 
   // Volume Vehicle
   const volumeGeometry = new THREE.BoxGeometry( x_scale, y_scale, z_scale);
-   
+  clock = new THREE.Clock();
+
+  // Test curve
+  const curve = new THREE.CatmullRomCurve3( [
+    new THREE.Vector3( 0, -0.0, -0.5 ),
+    new THREE.Vector3(0, 0.0,  -0.2 ),
+    new THREE.Vector3( 0, 0.0 , 0),
+    new THREE.Vector3( 0, 0.0, 0.2 ),
+    new THREE.Vector3( 0, -0.0, 0.5 )
+  ] );
+
+  const points = curve.getPoints( 20 );
+  const numPoints = 5;
+  const cPoints = curve.getSpacedPoints(numPoints);
+  const  cObjects = curve.computeFrenetFrames(numPoints, true);
+
+  const curve_data: CurveData =  {
+    positions : cPoints,
+    tangents :cObjects.normals,
+    normals : cObjects.normals,
+    binormals : cObjects.binormals,
+    numPoints : numPoints
+  }
+
+  const geometry = new THREE.BufferGeometry().setFromPoints( points );
+  const material = new THREE.LineBasicMaterial( { color: 0xff0000 } );
+
+  // Create the final object to add to the scene
+  const splineObject = new THREE.Line( geometry, material );
+  splineObject.matrixAutoUpdate = false;
+  scene.add(splineObject);
+
   const volumeUniforms =  {
     'volume_scale': { value: new THREE.Vector3( x_scale, y_scale, z_scale ) },
     'volume': { value: create3dDataTexture(x_dim, y_dim, z_dim) },
@@ -271,13 +320,16 @@ function init() {
     'aabb_max': { value: new THREE.Vector3()},
     'dt_scale': { value: 0.1},
     'spectrum': { value: createDataTexture(x_dim, y_dim) },
+    'curve_data': { value: createCurveDataTexture(curve_data) },
+    'time': {value: clock.getElapsedTime()}
   };
 
   const volumeMaterial = new THREE.ShaderMaterial({
     uniforms: volumeUniforms,
     vertexShader: raycastVertexShader,
     fragmentShader: raycastFragmentShader,
-    side: THREE.DoubleSide // The volume shader uses the backface as its "reference point"
+    side: THREE.DoubleSide,
+    transparent: true
   });
 
   volumeMesh = new THREE.Mesh( volumeGeometry, volumeMaterial);
@@ -304,7 +356,6 @@ function init() {
 
   // Add helpers
   addHelpers(scene);
-  
   render();
   document.addEventListener( 'pointermove', onPointerMove );
   window.addEventListener( 'resize', onWindowResize );  
@@ -339,7 +390,7 @@ function onPointerMove(event: any) {
 
 }
 
-function addHelpers (scene: Scene) {
+function addHelpers (scene: THREE.Scene) {
   const gridHelper = new THREE.GridHelper( 10, 10);
   scene.add( gridHelper );
   stats = Stats();
@@ -348,11 +399,13 @@ function addHelpers (scene: Scene) {
   scene.add( axesHelper );
 }
 
-
 function updateUniforms(){
+  (volumeMesh.material as THREE.ShaderMaterial).uniforms['time']['value'] = clock.getElapsedTime();
+
 }
 function animate(){
   // renderer.setAnimationLoop(render);
+  updateUniforms();
   stats.update();
   requestAnimationFrame(animate);
   render();
@@ -443,6 +496,30 @@ function createSpecDataTexture(data: Float32Array[], width: number, height: numb
 
 	return texture;
 }
+function createCurveDataTexture(data: CurveData){
+	const d = new Float32Array( data.numPoints *  4 * 4 );
+	let i4 = 0;
+  const pt_data = [data.positions, data.tangents, data.normals, data.binormals];
+  for ( let j = 0; j < 4; j ++ ) {
+    for ( let k = 0; k < data.numPoints; k ++ ) {
+      d[i4 + 0] = pt_data[j][k].x;
+      d[i4 + 1] = pt_data[j][k].y;
+      d[i4 + 2] = pt_data[j][k].z;
+      d[i4 + 3] = 1.0;
+      i4 += 4;
+    }
+  }
+  const texture = new THREE.DataTexture( d, data.numPoints, 1 );
+  texture.type = THREE.FloatType;
+  texture.format = THREE.RGBAFormat;
+  texture.minFilter = THREE.NearestFilter;
+	texture.magFilter = THREE.NearestFilter;
+	texture.unpackAlignment = 1;
+	texture.needsUpdate = true;
+  console.log(texture.image);
+  return texture
+}
+
 function setMeshTexture(mesh: THREE.Mesh, texture: THREE.DataTexture){
   (mesh.material as THREE.MeshStandardMaterial).map = texture;
   (volumeMesh.material as THREE.ShaderMaterial).uniforms['spectrum']['value'] = texture;
