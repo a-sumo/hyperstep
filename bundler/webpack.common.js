@@ -4,7 +4,7 @@ const path = require('path')
 
 module.exports = (env, argv) => {
   return {
-    entry: path.resolve(__dirname, '../src/script.js'),
+    entry: path.resolve(__dirname, '../src/script.ts'),
     output:
     {
       filename: 'bundle.[contenthash].js',
