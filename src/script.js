@@ -73,7 +73,7 @@ const NUM_CURVE_POINTS = 5;
 
 // gui parameters
 const params = {
-  playback_progress: 1.0,
+  playback_progress: 0.9,
   distance_func_type: 0,
   distance_func_scale: 1.0,
 };
