@@ -1,1 +1,0 @@
-export { SPICE } from './model';

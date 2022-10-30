@@ -1,1 +1,0 @@
-export { Coconet } from './model';

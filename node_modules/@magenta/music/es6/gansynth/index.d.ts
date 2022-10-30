@@ -1,1 +1,0 @@
-export { GANSynth } from './model';
