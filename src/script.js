@@ -73,7 +73,7 @@ const NUM_CURVE_POINTS = 5;
 
 // gui parameters
 const params = {
-  playback_progress: 0.9,
+  playback_progress: 1.0,
   distance_func_type: 0,
   distance_func_scale: 1.0,
 };
@@ -422,11 +422,11 @@ function onPointerMove(event) {
 
 function addHelpers (scene) {
   const gridHelper = new THREE.GridHelper( 10, 10);
-  scene.add( gridHelper );
+  // scene.add( gridHelper );
   stats = Stats();
   document.body.appendChild(stats.dom)
-  const axesHelper = new THREE.AxesHelper( 3 );
-  scene.add( axesHelper );
+  const axesHelper = new THREE.AxesHelper( 1 );
+  // scene.add( axesHelper );
 }
 
 function updateUniforms(){
@@ -475,7 +475,7 @@ function createDataTexture(width, height) {
 	let stride = 0;
   for ( let y = 0; y < height; y ++ ) {
     for ( let x = 0; x < width; x ++ ) {
-      d[stride + 0] = 1;
+      d[stride + 0] = 0;
       d[stride + 1] = 0;
       d[stride + 2] = 0;
       d[stride + 3] = 1;
