@@ -64,7 +64,7 @@ const SPEC_HOP_LENGTH = 512;
 
 // Live Audio spectrogram constants
 const FFT_SIZE = 2048;
-const NUM_FRAMES = 100;
+const NUM_FRAMES = 1024;
 const MIN_DB = -80;
 const MAX_DB = -10;
 
@@ -110,7 +110,7 @@ async function preprocessAudio(audioBuffer) {
     hopLength: SPEC_HOP_LENGTH,
     nMels: MEL_SPEC_BINS,
     // temporal resolution
-    nFft: 2048,
+    nFft: 2048 * 2,
     fMin: 30,
   }));
 }
