@@ -44,6 +44,7 @@ button, .button {
   font-size: 13px;
   padding: 4px 16px;
   margin-right: 4px;
+  margin-left: 16px;
   background: transparent;
   cursor: pointer;
 }

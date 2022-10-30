@@ -350,7 +350,7 @@ function init() {
     'spectrum': { value: createDataTexture(NUM_FRAMES, FFT_SIZE / 2) },
     'curve_data': { value: createCurveDataTexture(curve_data) },
     'time': {value: clock.getElapsedTime()},
-    'playback_progress': {value: 0.0},
+    'playback_progress': {value: 0.99},
     'df_type':{value: 0},
     'df_scale': {value: 1.0}
   };
