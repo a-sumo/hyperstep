@@ -215,25 +215,38 @@ void main(void) {
     // use distance function
     // infinite tube
     float dist = 0.0;
-    vec4 spec_val = texture(spectrum, vec2(0.0));
+    vec4 spec_val = texture(spectrum, vec2(0.0, 0.0));
+    spec_val.rgba = vec4(0.0);
+    float u_coords = 0.0;
+    float v_coords = 0.0;
     if(df_type == 0){
       // tube
       dist = length(p.xy) - 0.01;
       // sample spectrogram
-      spec_val = texture(spectrum, vec2(p.z + playback_progress - 0.5,  df_scale * 0.03 / dist));
+      u_coords = p.z + playback_progress - 0.5;
+      v_coords = df_scale * 0.03 / dist;
     }
     else if(df_type == 1){
       // sphere
       dist = clamp(length(p), 0.0, 1.0);
-      spec_val = texture(spectrum, vec2(playback_progress,  df_scale * 0.03 / dist));
+      u_coords = playback_progress;
+      v_coords = df_scale * 0.03 / dist;
     }
     else if(df_type == 2){
       // curve
       dist = distCurve(p);
-      spec_val = texture(spectrum, vec2(p.z + playback_progress - 0.5,  df_scale * 0.03 / dist));
+      u_coords = p.z + playback_progress - 0.5;
+      v_coords = df_scale * 0.03 / dist;
     }
+    spec_val = texture(spectrum, vec2(u_coords, v_coords));
 
-    vec4 val_color = vec4(pow(spec_val.r,10.0) ,pow(spec_val.r, 2.0),0.0 * pow(spec_val.r,0.0),spec_val.r);
+    // If UV coordinates fit the range [0, 1] x [0, 1] then 
+    // sample the texture, otherwise set value to zero.
+    if (u_coords < 0. || u_coords > 1. || 
+      v_coords < 0. || v_coords > 1.){
+      spec_val = vec4(0.0);
+    }
+    vec4 val_color = vec4(pow(spec_val.r,10.0) * 1.0/dist ,pow(spec_val.r, 2.0), 1.0/dist  * pow(spec_val.r,0.0),spec_val.r);
     //vec4 val_color = vec4(pow(dist,8.0),dist,dist,dist);
     // Opacity correction
     val_color.w = 1.0 - pow(1.0 - val_color.w, dt_scale);
