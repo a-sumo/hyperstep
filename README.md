@@ -57,6 +57,7 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
 </details>
  
 ## Volumetric synth control 
+<img src= "https://user-images.githubusercontent.com/75185852/198890470-c8cd9fe5-298c-4cd3-9fdf-da4e7cd1ac1a.png" width="500"/>
 <details>
   <summary>Project Description</summary>
   
@@ -64,8 +65,5 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
   
   Visualizing sound in the "shape" of the process most likely to have generated it. You can try it at https://a-sumo.github.io/hyperstep/.
   Further explanations will be given in depth pass 1.
-  
-<img src= "https://user-images.githubusercontent.com/75185852/198890470-c8cd9fe5-298c-4cd3-9fdf-da4e7cd1ac1a.png" width="500"/>
 </details>
-
 ## Coming soon: Hip Hop Fields
