@@ -1,0 +1,50 @@
+{
+  "name": "ndarray-fft",
+  "version": "1.0.3",
+  "description": "FFT for ndarrays",
+  "main": "fft.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "bit-twiddle": "^1.0.2",
+    "ndarray": "^1.0.15",
+    "ndarray-ops": "^1.2.2",
+    "cwise": "^1.0.4",
+    "typedarray-pool": "^1.0.0"
+  },
+  "devDependencies": {
+    "almost-equal": "0.0.0",
+    "array-almost-equal": "^1.0.0",
+    "tape": "^3.0.0",
+    "zeros": "0.0.0"
+  },
+  "scripts": {
+    "test": "node test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mikolalysenko/ndarray-fft.git"
+  },
+  "keywords": [
+    "ndarray",
+    "fft",
+    "fourier",
+    "transform",
+    "convolution",
+    "bluestein",
+    "radix",
+    "2",
+    "image",
+    "volume",
+    "filter",
+    "signal"
+  ],
+  "author": "Mikola Lysenko",
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "gitHead": "1847ab09f0f2fdc1103bca773b7bc0b0bd55b12d",
+  "browserify": {
+    "transform": "cwise"
+  }
+}
