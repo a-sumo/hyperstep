@@ -73,7 +73,7 @@ const NUM_CURVE_POINTS = 5;
 
 // gui parameters
 const params = {
-  playback_progress: 0.0,
+  playback_progress: 1.0,
   distance_func_type: 0,
   distance_func_scale: 1.0,
 };
@@ -215,17 +215,24 @@ void main(void) {
     // use distance function
     // infinite tube
     float dist = 0.0;
+    vec4 spec_val = texture(spectrum, vec2(0.0));
     if(df_type == 0){
-        dist = length(p.xy) - 0.01;
+      // tube
+      dist = length(p.xy) - 0.01;
+      // sample spectrogram
+      spec_val = texture(spectrum, vec2(p.z + playback_progress - 0.5,  df_scale * 0.03 / dist));
     }
     else if(df_type == 1){
+      // sphere
       dist = clamp(length(p), 0.0, 1.0);
+      spec_val = texture(spectrum, vec2(playback_progress,  df_scale * 0.03 / dist));
     }
     else if(df_type == 2){
+      // curve
       dist = distCurve(p);
+      spec_val = texture(spectrum, vec2(p.z + playback_progress - 0.5,  df_scale * 0.03 / dist));
     }
-    // sample spectrogram
-    vec4 spec_val = texture(spectrum, vec2(playback_progress,  df_scale * 0.03 / dist));
+
     vec4 val_color = vec4(pow(spec_val.r,10.0) ,pow(spec_val.r, 2.0),0.0 * pow(spec_val.r,0.0),spec_val.r);
     //vec4 val_color = vec4(pow(dist,8.0),dist,dist,dist);
     // Opacity correction
@@ -296,7 +303,7 @@ function init() {
   df_folder.add( params, 'distance_func_type', { Tube: 0, Sphere: 1}).name( 'type' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_type']['value'] = value;
   } );
-  df_folder.add( params, 'distance_func_scale', 0, 1).step(0.05).name( 'scale' ).onChange( function ( value ) {
+  df_folder.add( params, 'distance_func_scale', 0, 5).step(0.05).name( 'scale' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_scale']['value'] = value;
   } );
   // Debug spectrogram texture
@@ -330,7 +337,7 @@ function init() {
     'spectrum': { value: createDataTexture(NUM_FRAMES, FFT_SIZE / 2) },
     'curve_data': { value: createCurveDataTexture(curve_data) },
     'time': {value: clock.getElapsedTime()},
-    'playback_progress': {value: 0.5},
+    'playback_progress': {value: 0.0},
     'df_type':{value: 0},
     'df_scale': {value: 1.0}
   };
