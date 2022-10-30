@@ -41,21 +41,16 @@ button, .button {
   font-family: "Roboto", Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
   text-transform: uppercase;
   font-weight: 700;
-  font-size: 13px;
-  padding: 4px 16px;
-  margin-right: 4px;
+  font-size: 16px;
+  padding: 4px 14px;
+  margin-right: 8px;
   background: transparent;
   cursor: pointer;
 }
 button:hover, .button:hover {
-  background: hsl(219, 100%, 65%);
-  color: rgb(255, 255, 255);
-}
-button:active, .button:active{
-  background: #6fc982;
+  background: #6FC9C6;
   color: white;
 }
-
 button, .button, textarea {
   outline: none;
   border: 3px solid #222;
