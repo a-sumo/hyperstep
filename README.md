@@ -1,10 +1,15 @@
 # hyperstep
 ## [WIP] Intuitive and interactive representations for music production. 
 
+Hyperstep stems from a desire to make music by navigating into and operating on relevant spaces. 
+Many of the patterns we find in music originate from physical processes and interactions observed by humans in the 3d world. Hence, it is natural to build three-dimensional, immersive interfaces to interact with such processes to make music.
+
+In this repository, I plan on going over some of my ideas through multiple "depth passes". At each depth pass, I refine the algorithms, improve performance and add more explanatory content. This is mainly done to avoid getting lost into implementation details.
 
 ## [Organic drums through agent self-regulation](https://github.com/a-sumo/hyperstep/blob/main/colab/agent_self_regulation.ipynb)
 <details>
   <summary>Project Description</summary>
+  [depth pass 0]
   In this notebook, I attempt to recreate organic temporal patterns and syncopation by modeling composition as an agent regulating internal properties through a set of sound-associated actions. The key insight is to assign opposite effects to kicks and snare/claps.
   
  The direction of these effects has been determined arbitrarily, although I believe there is a *grammar of processes* that can be derived from real-world observations.  
@@ -49,6 +54,16 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
 </a>
 </details>
  
-### Coming soon: Volumetric synth control
-
+### Volumetric synth control 
+<details>
+  <summary>Project Description</summary>
+  
+  [depth pass 0]
+  
+  Visualizing sound in the "shape" of the process most likely to have generated it. You can try it at https://a-sumo.github.io/hyperstep/.
+  Further explanations will be given in depth pass 1.
+  
 <img src= "https://user-images.githubusercontent.com/75185852/198890470-c8cd9fe5-298c-4cd3-9fdf-da4e7cd1ac1a.png" width="500"/>
+</details>
+
+### Coming soon: Hip Hop Fields
