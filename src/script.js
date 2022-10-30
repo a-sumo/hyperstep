@@ -338,7 +338,7 @@ function init() {
   // Create curveMesh to add to the scene
   curveMesh = new THREE.Line( geometry, material );
   curveMesh.matrixAutoUpdate = false;
-  scene.add(curveMesh);
+  //scene.add(curveMesh);
 
   const volumeUniforms =  {
     'volume_scale': { value: new THREE.Vector3( x_scale, y_scale, z_scale ) },
@@ -422,11 +422,11 @@ function onPointerMove(event) {
 
 function addHelpers (scene) {
   const gridHelper = new THREE.GridHelper( 10, 10);
-  // scene.add( gridHelper );
+  scene.add( gridHelper );
   stats = Stats();
   document.body.appendChild(stats.dom)
   const axesHelper = new THREE.AxesHelper( 1 );
-  // scene.add( axesHelper );
+  scene.add( axesHelper );
 }
 
 function updateUniforms(){
