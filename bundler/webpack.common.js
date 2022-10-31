@@ -9,7 +9,7 @@ module.exports = (env, argv) => {
     {
       filename: 'bundle.[contenthash].js',
       path: path.resolve(__dirname, '../dist'),
-      publicPath: argv.mode === 'production' ? '/hyperstep/' : '/'
+      publicPath: argv.mode === 'production' ? '/hyperstep/flow/' : '/'
     },
     devtool: 'source-map',
     plugins:

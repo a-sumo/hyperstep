@@ -7,7 +7,7 @@ import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 import {loadAudioFromFile, resampleAndMakeMono, melSpectrogram, powerToDb} from '@magenta/music/esm/core/audio_utils';
 import { Texture, Vector3 } from 'three';
 import { GUI } from 'dat.gui/build/dat.gui.min.js';
-
+import { AudioReader, RingBuffer } from './ringbuf.js';
 if ( WebGL.isWebGL2Available() === false ) {
 
   document.body.appendChild( WebGL.getWebGL2ErrorMessage() );
@@ -47,7 +47,10 @@ try {
 // global var getUserMedia mic stream
 let gumStream;
 // global audio node variables
+let mic;
 let gain;
+let melspectrogramNode;
+let splitter;
 
 // Volume constants
 const x_dim = 4;
@@ -67,7 +70,7 @@ const FFT_SIZE = 2048;
 const NUM_FRAMES = 1024;
 const MIN_DB = -80;
 const MAX_DB = -10;
-
+analyser = audioCtx.createAnalyser();
 // Curve constants
 const NUM_CURVE_POINTS = 5;
 
@@ -81,9 +84,10 @@ const params = {
 const fileInput = document.getElementById('loadFileInput');
 const recordButton = document.getElementById('recordButton');
 
+
 // Set up event listeners
 
-addEventListener('change', () => loadFile(fileInput, 'loadFileBtn'));
+fileInput.addEventListener('change', () => loadFile(fileInput, 'loadFileBtn'));
 // Load audio file, generate mel spectrogram 
 // and return the spectrogram's data texture
 function loadFile(inputElement, prefix) {
@@ -91,7 +95,7 @@ function loadFile(inputElement, prefix) {
   const audioBuffer = loadAudioFromFile(inputElement.files[0]);
   return audioBuffer
   .then(
-    (buffer) => {return preprocessAudio(buffer)})
+    (buffer) => {playAudio(buffer); return preprocessAudio(buffer)})
   .then(
     (melSpec) => {
       return createMMSpectrumDataTexture(melSpec, melSpec.length, MEL_SPEC_BINS)
@@ -114,7 +118,12 @@ async function preprocessAudio(audioBuffer) {
     fMin: 30,
   }));
 }
-
+async function playAudio(audioBuffer){
+  const source = audioCtx.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(audioCtx.destination);
+  source.start();
+}
 // Shaders 
 const raycastVertexShader = /* glsl */`
 uniform vec3 volume_scale;
@@ -389,7 +398,7 @@ function init() {
   render();
   document.addEventListener( 'pointermove', onPointerMove );
   window.addEventListener( 'resize', onWindowResize );  
-  // recordButton.addEventListener('click', onRecordClickHandler);
+  recordButton.addEventListener('click', onRecordClickHandler);
 }
 
 function onWindowResize() {
@@ -540,7 +549,7 @@ function updateSpectrumData(texture, new_data) {
   let stride = 0;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      if (x < width - 10) {
+      if (x == width - 1) {
         // see https://webaudio.github.io/web-audio-api/#dom-analysernode-getbytefrequencydata
         data[stride] = new_data[y] ;
       } else {
@@ -553,16 +562,19 @@ function updateSpectrumData(texture, new_data) {
       stride += 4;
     }
   }
-  // const d_max = Math.max.apply(null, data);
-  // const d_min = Math.min.apply(null, data);
-  // // normalize array 
-  // stride = 0;
-  // while(stride < width * height * 4 ){
-  //   data[stride] = (data[stride] - d_min) / (d_max - d_min);
-  //   stride +=4;
-  // }
-  // console.log(d_max);
+  var max = -Infinity; 
+  var min = Infinity; 
+  for(var i = 0; i < data.length; i++ ) if (data[i] > max) max = data[i];
+  for(var i = 0; i < data.length; i++ ) if (data[i] < min) min = data[i];
+
+  // normalize array 
+  stride = 0;
+  while(stride < width * height * 4 ){
+    data[stride] = (data[stride] - min) / (max - min);
+    stride +=4;
+  }
 }
+
 function createCurveDataTexture(data){
 	const d = new Float32Array( data.numPoints *  4 * 4 );
 	let stride = 0;
@@ -668,41 +680,14 @@ function render() {
 // }
 
 function displayLiveSpectrum() {
+  
   analyser.fftSize = FFT_SIZE;
   let bufferLength = analyser.frequencyBinCount;
   let newFFTData = new Uint8Array(bufferLength);
   analyser.getByteFrequencyData(newFFTData); 
   const texture = (volumeMesh.material).uniforms['spectrum']['value'];
-  updateSpectrumData(texture, Float32Array.from(newFFTData));
+  //updateSpectrumData(texture, Float32Array.from(newFFTData));
   texture.needsUpdate = true;
-  if (clock.getElapsedTime() < 0.1){
-    console.log((volumeMesh.material).uniforms['spectrum']['value']);
-    console.log((volumeMesh.material).uniforms['spectrum']['value'].format);
-  }
-}
-
-// From a series of URL to js files, get an object URL that can be loaded in an
-// AudioWorklet. This is useful to be able to use multiple files (utils, data
-// structure, main DSP, etc.) without either using static imports, eval, manual
-// concatenation with or without a build step, etc.
-function URLFromFiles(files) {
-  const promises = files
-      .map((file) => fetch(file)
-          .then((response) => response.text()));
-  return Promise
-      .all(promises)
-      .then((texts) => {
-          texts.unshift("var exports = {};"); // hack to make injected umd modules work
-          const text = texts.join('');
-          const blob = new Blob([text], {type: "application/javascript"});
-
-          return URL.createObjectURL(blob);
-      });
-}
-
-// Utils:
-function arraySum(total, num) {
-    return total + num;
 }
 
 
@@ -721,12 +706,25 @@ function onRecordClickHandler() {
 function startMicRecordStream() {
     if (navigator.mediaDevices.getUserMedia) {
         console.log("Initializing audio...");
-        navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        navigator.mediaDevices.getUserMedia({ 
+          // disable processing to decrease audio recording latency
+          audio: true, 
+          video: false,
+          autoGainControl: false,
+          echoCancellation: false,
+          noiseSuppression: false
+        })
         .then(startAudioProcessing)
         .catch(function(message) {
                 throw "Could not access microphone - " + message;
         });
-    } else {
+    } else {// Setup audio
+ 
+      let navigatorCopy = navigator;
+      if (navigatorCopy.mediaDevices === undefined) {
+       navigatorCopy.mediaDevices = {};
+      }
+      
         throw "Could not access microphone - getUserMedia not available";
     }
 }
@@ -736,6 +734,10 @@ function startAudioProcessing(stream) {
     if (gumStream.active) {
         // In most platforms where the sample rate is 44.1 kHz or 48 kHz,
         // and the default bufferSize will be 4096, giving 10-12 updates/sec.
+        
+        analyser.minDecibels = MIN_DB;
+        analyser.maxDecibels = MAX_DB;
+        analyser.smoothingTimeConstant = 0.85;
         if (audioCtx.state == "closed") {
             audioCtx = new AudioContext();
         }
@@ -744,8 +746,16 @@ function startAudioProcessing(stream) {
         }
         console.log('Started processing');
         mic = audioCtx.createMediaStreamSource(gumStream);
-        gain = audioCtx.createGain();
-        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        mic.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        // gain = audioCtx.createGain();
+        // gain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+        audioCtx.audioWorklet.addModule(new URL( './melspectrogram-processor.js', import.meta.url ))
+        .then(setupAudioGraph)
+        .catch( function moduleLoadRejected(msg) {
+            console.log(`There was a problem loading the AudioWorklet module code: \n ${msg}`);
+        });
         // set button to stop
         recordButton.classList.add("recording");
         recordButton.innerHTML = "STOP";
@@ -755,19 +765,44 @@ function startAudioProcessing(stream) {
     }
 }
 
-function setValue() {
-  data.innerHTML = text.message;
-  data.style.color = text.color;
-  data.style.fontSize = text.fontSize+"px";
-  data.style.fontFamily = text.fontFamily;
-  if(text.border) {
-    data.style.border = "solid 1px black";
-    data.style.padding = "10px";
-  }
-  else {
-    data.style.border = "none";
-    data.style.padding = "0px";
-  }
+function setupAudioGraph() {
+
+  melspectrogramNode = new AudioWorkletNode(audioCtx, 'melspectrogram-processor', {
+      processorOptions: {
+          bufferSize: bufferSize,
+          hopSize: hopSize,
+          melNumBands: melNumBands,
+          sampleRate: audioCtx.sampleRate,
+      }
+  });
+
+  // It seems necessary to connect the stream to a sink for the pipeline to work, contrary to documentataions.
+  // As a workaround, here we create a gain node with zero gain, and connect temp to the system audio output.
+  mic.connect(melspectrogramNode);
+  melspectrogramNode.connect(gain);
+  gain.connect(audioCtx.destination);
+
 }
 
-
+function stopMicRecordStream() {
+  // stop mic stream
+  gumStream.getAudioTracks().forEach(function(track) {
+      track.stop();
+      gumStream.removeTrack(track);
+  });
+   audioCtx.close().then(function() {
+      // manage button state
+      recordButton.classList.remove("recording");
+      recordButton.innerHtml = 'RECORD';
+     
+      // disconnect nodes
+      mic.disconnect();
+      melspectrogramNode.disconnect();
+      gain.disconnect();
+      mic = undefined;
+      melspectrogramNode = undefined;
+      gain = undefined;
+  
+      console.log("Stopped recording ...");
+  });
+}
