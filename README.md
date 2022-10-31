@@ -4,7 +4,7 @@
 Hyperstep stems from a desire to make music by navigating into and operating on relevant spaces. 
 Many of the patterns we find in music originate from physical processes and interactions observed by humans in the 3d world. Hence, it is natural to build three-dimensional, immersive interfaces to interact with such processes to make music.
 
-In this repository, I plan on going over some of my ideas through multiple "depth passes". At each depth pass, I refine the algorithms, improve performance and add more explanatory content. This is mainly done to avoid getting lost into implementation details and maximize creative flow.
+In this repository, I plan on going over some of my ideas through multiple "depth passes". At each depth pass, I refine the algorithms, improve performance and add more explanatory content. This is mainly done to avoid getting lost into implementation details and to maximize creative flow.
 
 ## [Organic drums through agent self-regulation](https://github.com/a-sumo/hyperstep/blob/main/colab/agent_self_regulation.ipynb)
 <details>
@@ -67,6 +67,3 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
   Further explanations will be given in depth pass 1.
 </details>
 
-## Coming soon: Hip Hop Fields
-
-Visualizing the latent spaces involved in a subset of hip hop dancing and popping.  
