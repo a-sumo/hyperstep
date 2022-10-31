@@ -82,7 +82,7 @@ const params = {
 };
 // Set up UI Elements 
 const fileInput = document.getElementById('loadFileInput');
-const recordButton = document.getElementById('recordButton');
+// const recordButton = document.getElementById('recordButton');
 
 
 // Set up event listeners
@@ -320,13 +320,16 @@ function init() {
   const gui = new GUI(); 
   gui.add( params, 'playback_progress', 0, 1).step(0.001).name( 'playback progress' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['playback_progress']['value'] = value;
+    render();
   } );
   const df_folder = gui.addFolder('distance function') 
   df_folder.add( params, 'distance_func_type', { Tube: 0, Sphere: 1}).name( 'type' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_type']['value'] = value;
+    render();
   } );
   df_folder.add( params, 'distance_func_scale', 0, 5).step(0.05).name( 'scale' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_scale']['value'] = value;
+    render();
   } );
   // Debug spectrogram texture
   let planeGeo1 = new THREE.PlaneGeometry(2, 2);
@@ -398,7 +401,7 @@ function init() {
   render();
   document.addEventListener( 'pointermove', onPointerMove );
   window.addEventListener( 'resize', onWindowResize );  
-  recordButton.addEventListener('click', onRecordClickHandler);
+  //recordButton.addEventListener('click', onRecordClickHandler);
 }
 
 function onWindowResize() {
@@ -691,16 +694,16 @@ function displayLiveSpectrum() {
 }
 
 
-function onRecordClickHandler() {
-    let recording = recordButton.classList.contains("recording");
-      if (!recording) {
-        recordButton.setAttribute("disabled", true);
-        // start microphone stream using getUserMedia and runs the feature extraction
-        startMicRecordStream();
-      } else {
-        stopMicRecordStream();
-      }
-}
+// function onRecordClickHandler() {
+//     let recording = recordButton.classList.contains("recording");
+//       if (!recording) {
+//         recordButton.setAttribute("disabled", true);
+//         // start microphone stream using getUserMedia and runs the feature extraction
+//         startMicRecordStream();
+//       } else {
+//         stopMicRecordStream();
+//       }
+// }
 
 // record native microphone input and do further audio processing on each audio buffer using the given callback functions
 function startMicRecordStream() {
@@ -757,9 +760,9 @@ function startAudioProcessing(stream) {
             console.log(`There was a problem loading the AudioWorklet module code: \n ${msg}`);
         });
         // set button to stop
-        recordButton.classList.add("recording");
-        recordButton.innerHTML = "STOP";
-        recordButton.setAttribute("disabled", false);
+        // recordButton.classList.add("recording");
+        // recordButton.innerHTML = "STOP";
+        // recordButton.setAttribute("disabled", false);
     } else {
         throw "Mic stream not active";
     }
@@ -792,8 +795,8 @@ function stopMicRecordStream() {
   });
    audioCtx.close().then(function() {
       // manage button state
-      recordButton.classList.remove("recording");
-      recordButton.innerHtml = 'RECORD';
+      // recordButton.classList.remove("recording");
+      // recordButton.innerHtml = 'RECORD';
      
       // disconnect nodes
       mic.disconnect();
