@@ -55,6 +55,8 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
 ## [Volumetric synth control](https://a-sumo.github.io/hyperstep/)
 
 <img src= "https://user-images.githubusercontent.com/75185852/199251274-47f4dab3-a763-4cac-9da0-96f3b678b0f8.mp4" width="500"/>
+<img src= "https://user-images.githubusercontent.com/75185852/199347450-c1074afa-6426-4ecd-a25b-dc19c0291554.mp4" width="500"/>
+
 
 <details>
   <summary>Project Description</summary>
