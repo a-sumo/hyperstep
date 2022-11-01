@@ -5,9 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 import {loadAudioFromFile, resampleAndMakeMono, melSpectrogram, powerToDb} from '@magenta/music/esm/core/audio_utils';
-import { Texture, Vector3 } from 'three';
 import { GUI } from 'dat.gui/build/dat.gui.min.js';
-import { AudioReader, RingBuffer } from './ringbuf.js';
 if ( WebGL.isWebGL2Available() === false ) {
 
   document.body.appendChild( WebGL.getWebGL2ErrorMessage() );
@@ -29,7 +27,10 @@ let planeMesh,
   curveMesh,
   curve_data
 
-let analyser
+let analyser,
+  total_ms,
+  duration,
+  fileURL
 
 let AudioContext;
 // global var for web audio API AudioContext
@@ -63,39 +64,50 @@ const z_scale = 1;
 // Magenta Music  spectrogram constants
 const SAMPLE_RATE = 16000;
 const MEL_SPEC_BINS = 229;
-const SPEC_HOP_LENGTH = 512;
+const SPEC_HOP_LENGTH = 512 * 2;
 
 // Live Audio spectrogram constants
+
 const FFT_SIZE = 2048;
 const NUM_FRAMES = 1024;
 const MIN_DB = -80;
 const MAX_DB = -10;
 analyser = audioCtx.createAnalyser();
+
+  // Timer
+
+
 // Curve constants
 const NUM_CURVE_POINTS = 5;
 
+// GUI
+const gui = new GUI( {width: 200 } );
 // gui parameters
 const params = {
-  playback_progress: 1.0,
   distance_func_type: 0,
   distance_func_scale: 1.0,
+  lerp_sphere_tube: 0.0,
+  playback_rate: 1.0,
 };
 // Set up UI Elements 
 const fileInput = document.getElementById('loadFileInput');
 // const recordButton = document.getElementById('recordButton');
-
+const audioEl = document.getElementById('audio')
+const blob = window.URL || window.webkitURL;
 
 // Set up event listeners
 
-fileInput.addEventListener('change', () => loadFile(fileInput, 'loadFileBtn'));
+fileInput.addEventListener('change', () => loadFile(fileInput));
 // Load audio file, generate mel spectrogram 
 // and return the spectrogram's data texture
-function loadFile(inputElement, prefix) {
+function loadFile(inputElement) {
   //document.getElementById(`${prefix}_fileBtn`).setAttribute('disabled', '');
   const audioBuffer = loadAudioFromFile(inputElement.files[0]);
+  fileURL = blob.createObjectURL(inputElement.files[0]);
+  audioEl.src = fileURL;
   return audioBuffer
   .then(
-    (buffer) => {playAudio(buffer); return preprocessAudio(buffer)})
+    (buffer) => {return preprocessAudio(buffer)})
   .then(
     (melSpec) => {
       return createMMSpectrumDataTexture(melSpec, melSpec.length, MEL_SPEC_BINS)
@@ -118,12 +130,15 @@ async function preprocessAudio(audioBuffer) {
     fMin: 30,
   }));
 }
-async function playAudio(audioBuffer){
-  const source = audioCtx.createBufferSource();
-  source.buffer = audioBuffer;
-  source.connect(audioCtx.destination);
-  source.start();
-}
+// Play Audio File
+// async function playAudio(audioBuffer){
+//   const source = audioCtx.createBufferSource();
+//   source.buffer = audioBuffer;
+//   source.connect(audioCtx.destination);
+//   source.start();
+// }
+
+
 // Shaders 
 const raycastVertexShader = /* glsl */`
 uniform vec3 volume_scale;
@@ -150,6 +165,8 @@ uniform vec3 aabb_min;
 uniform vec3 aabb_max;
 uniform float time;
 uniform float playback_progress;
+uniform float lerp_sphere_tube;
+uniform float playback_rate;
 uniform int df_type;
 uniform float df_scale;
 in vec3 vray_dir;
@@ -228,25 +245,24 @@ void main(void) {
     spec_val.rgba = vec4(0.0);
     float u_coords = 0.0;
     float v_coords = 0.0;
-    if(df_type == 0){
-      // tube
-      dist = length(p.xy) - 0.01;
-      // sample spectrogram
-      u_coords = p.z + playback_progress - 0.5;
-      v_coords = df_scale * 0.03 / dist;
-    }
-    else if(df_type == 1){
-      // sphere
-      dist = clamp(length(p), 0.0, 1.0);
-      u_coords = playback_progress;
-      v_coords = df_scale * 0.03 / dist;
-    }
-    else if(df_type == 2){
-      // curve
-      dist = distCurve(p);
-      u_coords = p.z + playback_progress - 0.5;
-      v_coords = df_scale * 0.03 / dist;
-    }
+
+    // tube
+    float dist_tube = length(p.xy) - 0.01;
+    float u_coords_tube = (p.z +   - 0.5) / playback_rate + playback_progress;
+
+    // sphere
+    float dist_sphere = clamp(length(p), 0.0, 1.0);
+    float u_coords_sphere = playback_progress;
+
+    // curve
+    float dist_curve = distCurve(p);
+    float u_coords_curve = u_coords_tube;
+
+    u_coords = lerp_sphere_tube * u_coords_tube + (1.0 - lerp_sphere_tube) * u_coords_sphere;
+    dist = lerp_sphere_tube * dist_tube + (1.0 - lerp_sphere_tube) * dist_sphere;
+
+    v_coords = df_scale * 0.03 / dist;
+
     spec_val = texture(spectrum, vec2(u_coords, v_coords));
 
     // If UV coordinates fit the range [0, 1] x [0, 1] then 
@@ -304,7 +320,7 @@ function init() {
   // const h = 2 * width; // frustum height
   // const aspect = window.innerWidth / window.innerHeight;
   // camera = new THREE.OrthographicCamera( - h * aspect / 2, h * aspect / 2, h / 2, - h / 2, 0.01, 1000 );
-  camera.position.set( 0, 0, 10 );
+  camera.position.set( -2, 2, 2 );
   
   scene.add(camera);
 
@@ -315,28 +331,27 @@ function init() {
   controls.maxZoom = 10;
   controls.enablePan = false;
   controls.update();
-  
-  // GUI
-  const gui = new GUI(); 
-  gui.add( params, 'playback_progress', 0, 1).step(0.001).name( 'playback progress' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['playback_progress']['value'] = value;
-    render();
+
+  gui.add( params, 'lerp_sphere_tube', 0, 1).step(0.001).name( 'amount_sphere_tube' ).onChange( function ( value ) {
+    (volumeMesh.material).uniforms['lerp_sphere_tube']['value'] = value;
   } );
-  const df_folder = gui.addFolder('distance function') 
-  df_folder.add( params, 'distance_func_type', { Tube: 0, Sphere: 1}).name( 'type' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_type']['value'] = value;
-    render();
+  gui.add( params, 'playback_rate', 0.1, 10).step(0.01).name( 'playback_rate' ).onChange( function ( value ) {
+    (volumeMesh.material).uniforms['playback_rate']['value'] = 1.0 / value;
+    audioEl.playbackRate = value;
   } );
+  const df_folder = gui.addFolder('distance function') ;
+  // df_folder.add( params, 'distance_func_type', { Tube: 0, Sphere: 1}).name( 'type' ).onChange( function ( value ) {
+  //   (volumeMesh.material).uniforms['df_type']['value'] = value;
+  // } );
   df_folder.add( params, 'distance_func_scale', 0, 5).step(0.05).name( 'scale' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_scale']['value'] = value;
-    render();
   } );
   // Debug spectrogram texture
   let planeGeo1 = new THREE.PlaneGeometry(2, 2);
   let planeMat1 = new THREE.MeshBasicMaterial({ map: createDataTexture(x_dim, y_dim), side: THREE.DoubleSide});
   debugPlaneMesh = new THREE.Mesh(planeGeo1, planeMat1);
   debugPlaneMesh .position.set( -2, 0, -1 );
-  scene.add(debugPlaneMesh);
+  // scene.add(debugPlaneMesh);
 
   // Volume 
   const volumeGeometry = new THREE.BoxGeometry( x_scale, y_scale, z_scale);
@@ -362,7 +377,9 @@ function init() {
     'spectrum': { value: createDataTexture(NUM_FRAMES, FFT_SIZE / 2) },
     'curve_data': { value: createCurveDataTexture(curve_data) },
     'time': {value: clock.getElapsedTime()},
-    'playback_progress': {value: 0.99},
+    'playback_progress': {value: 0.0},
+    'lerp_sphere_tube': {value: 0.0},
+    'playback_rate': {value: 1.0},
     'df_type':{value: 0},
     'df_scale': {value: 1.0}
   };
@@ -397,7 +414,7 @@ function init() {
   raycaster = new THREE.Raycaster();
 
   // Add helpers
-  addHelpers(scene);
+  //addHelpers(scene);
   render();
   document.addEventListener( 'pointermove', onPointerMove );
   window.addEventListener( 'resize', onWindowResize );  
@@ -420,7 +437,6 @@ function onWindowResize() {
   camera.updateProjectionMatrix();
 
   renderer.setSize( window.innerWidth, window.innerHeight );
-
   render();
 
 }
@@ -436,19 +452,25 @@ function addHelpers (scene) {
   const gridHelper = new THREE.GridHelper( 10, 10);
   scene.add( gridHelper );
   stats = Stats();
-  document.body.appendChild(stats.dom)
+  //document.body.appendChild(stats.dom)
   const axesHelper = new THREE.AxesHelper( 1 );
   scene.add( axesHelper );
 }
-
+function map_range(value, low1, high1, low2, high2) {
+  return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+}
 function updateUniforms(){
   (volumeMesh.material).uniforms['time']['value'] = clock.getElapsedTime();
   (volumeMesh.material).uniforms['curve_data']['value'] =  updateCurveData(curveMesh, NUM_CURVE_POINTS);
+  // Linear Interpolation
+  (volumeMesh.material).uniforms['playback_progress']['value'] = (audioEl.currentTime) / audioEl.duration;
 }
+
+
 function animate(){
   requestAnimationFrame(animate);
   updateUniforms();
-  stats.update();
+  //stats.update();
   //displayLiveSpectrum();
   render();
 }

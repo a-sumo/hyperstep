@@ -8,18 +8,20 @@
 </head>
 
 <body>
-    <label class="button"
+    <label for="loadFileInput"class="button"
     id = "loadFileBtn">
-        Load audio file
-        <input           
-        accept=".wav,.mp3,.oga,.aac"
-        className="recorder__input"
-        type="file" 
-        id="loadFileInput">
+    Load Audio File 
     </label>
+    <input           
+    accept=".wav,.mp3,.oga,.aac"
+    className="recorder__input"
+    type="file" 
+    id="loadFileInput">
+    <audio id="audio" controls autoplay></audio>
     <!-- <button id="recordButton" class="ui red inverted big button record-button" role="switch">
         RECORD
     </button> -->
+    
 </body>
 
 </html>

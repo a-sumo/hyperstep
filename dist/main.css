@@ -5,7 +5,7 @@
 
 body {
   margin: 0;
-  padding: 20px;
+  padding: 0px;
   font: 300 16px/1.5 "Roboto", Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
   color: #111;
   background-color: #fdfdfd;
@@ -44,7 +44,6 @@ button, .button {
   font-size: 13px;
   padding: 4px 16px;
   margin-right: 4px;
-  margin-left: 16px;
   background: transparent;
   cursor: pointer;
 }
@@ -64,6 +63,20 @@ button, .button, textarea {
   background: white;
 }
 
+input[type="file"] {
+	width: 0.1px;
+	height: 0.1px;
+	opacity: 0;
+	overflow: hidden;
+	position: absolute;
+	z-index: -1;
+}
+.custom-file-upload {
+    border: 1px solid #ccc;
+    display: inline-block;
+    padding: 6px 12px;
+    cursor: pointer;
+}
 .player-container {
   margin-top: 14px;
   margin-bottom: 24px;
