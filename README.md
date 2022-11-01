@@ -60,7 +60,7 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
   <summary>Project Description</summary>
   
   
-  Visualizing sound in the "shape" of the process most likely to have generated it. You can try it at https://a-sumo.github.io/hyperstep/.
-  More on this subject soon.
+  Here I visualize sound in the "shape" of the process most likely to have generated it. The goal is to recover this "shape" from real-world observations. You can try it at https://a-sumo.github.io/hyperstep/.
+  
 </details>
 
