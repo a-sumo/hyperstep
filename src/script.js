@@ -16,8 +16,7 @@ let camera,
   scene, 
   renderer, 
   controls, 
-  stats,
-  raycaster
+  stats
 
 let planeMesh,
   debugPlaneMesh,
@@ -28,16 +27,15 @@ let planeMesh,
   curve_data
 
 let analyser,
-  total_ms,
-  duration,
   fileURL
 
-let AudioContext;
+
 // global var for web audio API AudioContext
+let AudioContext;
 let audioCtx;
-let bufferSize = 1024;
-let hopSize = 512;
-let melNumBands = 96;
+// let bufferSize = 1024;
+// let hopSize = 512;
+// let melNumBands = 96;
 
 try {
     AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -64,7 +62,7 @@ const z_scale = 1;
 // Magenta Music  spectrogram constants
 const SAMPLE_RATE = 16000;
 const MEL_SPEC_BINS = 229;
-const SPEC_HOP_LENGTH = 512 * 2;
+const SPEC_HOP_LENGTH = 512;
 
 // Live Audio spectrogram constants
 
@@ -73,9 +71,6 @@ const NUM_FRAMES = 1024;
 const MIN_DB = -80;
 const MAX_DB = -10;
 analyser = audioCtx.createAnalyser();
-
-  // Timer
-
 
 // Curve constants
 const NUM_CURVE_POINTS = 5;
@@ -411,8 +406,6 @@ function init() {
   scene.add(planeMesh);
   planeMesh.name = 'plane';
 
-  raycaster = new THREE.Raycaster();
-
   // Add helpers
   //addHelpers(scene);
   render();
@@ -704,130 +697,130 @@ function render() {
 //   }
 // }
 
-function displayLiveSpectrum() {
+// function displayLiveSpectrum() {
   
-  analyser.fftSize = FFT_SIZE;
-  let bufferLength = analyser.frequencyBinCount;
-  let newFFTData = new Uint8Array(bufferLength);
-  analyser.getByteFrequencyData(newFFTData); 
-  const texture = (volumeMesh.material).uniforms['spectrum']['value'];
-  //updateSpectrumData(texture, Float32Array.from(newFFTData));
-  texture.needsUpdate = true;
-}
-
-
-// function onRecordClickHandler() {
-//     let recording = recordButton.classList.contains("recording");
-//       if (!recording) {
-//         recordButton.setAttribute("disabled", true);
-//         // start microphone stream using getUserMedia and runs the feature extraction
-//         startMicRecordStream();
-//       } else {
-//         stopMicRecordStream();
-//       }
+//   analyser.fftSize = FFT_SIZE;
+//   let bufferLength = analyser.frequencyBinCount;
+//   let newFFTData = new Uint8Array(bufferLength);
+//   analyser.getByteFrequencyData(newFFTData); 
+//   const texture = (volumeMesh.material).uniforms['spectrum']['value'];
+//   //updateSpectrumData(texture, Float32Array.from(newFFTData));
+//   texture.needsUpdate = true;
 // }
 
-// record native microphone input and do further audio processing on each audio buffer using the given callback functions
-function startMicRecordStream() {
-    if (navigator.mediaDevices.getUserMedia) {
-        console.log("Initializing audio...");
-        navigator.mediaDevices.getUserMedia({ 
-          // disable processing to decrease audio recording latency
-          audio: true, 
-          video: false,
-          autoGainControl: false,
-          echoCancellation: false,
-          noiseSuppression: false
-        })
-        .then(startAudioProcessing)
-        .catch(function(message) {
-                throw "Could not access microphone - " + message;
-        });
-    } else {// Setup audio
+
+// // function onRecordClickHandler() {
+// //     let recording = recordButton.classList.contains("recording");
+// //       if (!recording) {
+// //         recordButton.setAttribute("disabled", true);
+// //         // start microphone stream using getUserMedia and runs the feature extraction
+// //         startMicRecordStream();
+// //       } else {
+// //         stopMicRecordStream();
+// //       }
+// // }
+
+// // record native microphone input and do further audio processing on each audio buffer using the given callback functions
+// function startMicRecordStream() {
+//     if (navigator.mediaDevices.getUserMedia) {
+//         console.log("Initializing audio...");
+//         navigator.mediaDevices.getUserMedia({ 
+//           // disable processing to decrease audio recording latency
+//           audio: true, 
+//           video: false,
+//           autoGainControl: false,
+//           echoCancellation: false,
+//           noiseSuppression: false
+//         })
+//         .then(startAudioProcessing)
+//         .catch(function(message) {
+//                 throw "Could not access microphone - " + message;
+//         });
+//     } else {// Setup audio
  
-      let navigatorCopy = navigator;
-      if (navigatorCopy.mediaDevices === undefined) {
-       navigatorCopy.mediaDevices = {};
-      }
+//       let navigatorCopy = navigator;
+//       if (navigatorCopy.mediaDevices === undefined) {
+//        navigatorCopy.mediaDevices = {};
+//       }
       
-        throw "Could not access microphone - getUserMedia not available";
-    }
-}
+//         throw "Could not access microphone - getUserMedia not available";
+//     }
+// }
 
-function startAudioProcessing(stream) {
-    gumStream = stream;
-    if (gumStream.active) {
-        // In most platforms where the sample rate is 44.1 kHz or 48 kHz,
-        // and the default bufferSize will be 4096, giving 10-12 updates/sec.
+// function startAudioProcessing(stream) {
+//     gumStream = stream;
+//     if (gumStream.active) {
+//         // In most platforms where the sample rate is 44.1 kHz or 48 kHz,
+//         // and the default bufferSize will be 4096, giving 10-12 updates/sec.
         
-        analyser.minDecibels = MIN_DB;
-        analyser.maxDecibels = MAX_DB;
-        analyser.smoothingTimeConstant = 0.85;
-        if (audioCtx.state == "closed") {
-            audioCtx = new AudioContext();
-        }
-        else if (audioCtx.state == "suspended") {
-            audioCtx.resume();
-        }
-        console.log('Started processing');
-        mic = audioCtx.createMediaStreamSource(gumStream);
-        mic.connect(analyser);
-        analyser.connect(audioCtx.destination);
-        // gain = audioCtx.createGain();
-        // gain.gain.setValueAtTime(0, audioCtx.currentTime);
+//         analyser.minDecibels = MIN_DB;
+//         analyser.maxDecibels = MAX_DB;
+//         analyser.smoothingTimeConstant = 0.85;
+//         if (audioCtx.state == "closed") {
+//             audioCtx = new AudioContext();
+//         }
+//         else if (audioCtx.state == "suspended") {
+//             audioCtx.resume();
+//         }
+//         console.log('Started processing');
+//         mic = audioCtx.createMediaStreamSource(gumStream);
+//         mic.connect(analyser);
+//         analyser.connect(audioCtx.destination);
+//         // gain = audioCtx.createGain();
+//         // gain.gain.setValueAtTime(0, audioCtx.currentTime);
 
-        audioCtx.audioWorklet.addModule(new URL( './melspectrogram-processor.js', import.meta.url ))
-        .then(setupAudioGraph)
-        .catch( function moduleLoadRejected(msg) {
-            console.log(`There was a problem loading the AudioWorklet module code: \n ${msg}`);
-        });
-        // set button to stop
-        // recordButton.classList.add("recording");
-        // recordButton.innerHTML = "STOP";
-        // recordButton.setAttribute("disabled", false);
-    } else {
-        throw "Mic stream not active";
-    }
-}
+//         audioCtx.audioWorklet.addModule(new URL( './melspectrogram-processor.js', import.meta.url ))
+//         .then(setupAudioGraph)
+//         .catch( function moduleLoadRejected(msg) {
+//             console.log(`There was a problem loading the AudioWorklet module code: \n ${msg}`);
+//         });
+//         // set button to stop
+//         // recordButton.classList.add("recording");
+//         // recordButton.innerHTML = "STOP";
+//         // recordButton.setAttribute("disabled", false);
+//     } else {
+//         throw "Mic stream not active";
+//     }
+// }
 
-function setupAudioGraph() {
+// function setupAudioGraph() {
 
-  melspectrogramNode = new AudioWorkletNode(audioCtx, 'melspectrogram-processor', {
-      processorOptions: {
-          bufferSize: bufferSize,
-          hopSize: hopSize,
-          melNumBands: melNumBands,
-          sampleRate: audioCtx.sampleRate,
-      }
-  });
+//   melspectrogramNode = new AudioWorkletNode(audioCtx, 'melspectrogram-processor', {
+//       processorOptions: {
+//           bufferSize: bufferSize,
+//           hopSize: hopSize,
+//           melNumBands: melNumBands,
+//           sampleRate: audioCtx.sampleRate,
+//       }
+//   });
 
-  // It seems necessary to connect the stream to a sink for the pipeline to work, contrary to documentataions.
-  // As a workaround, here we create a gain node with zero gain, and connect temp to the system audio output.
-  mic.connect(melspectrogramNode);
-  melspectrogramNode.connect(gain);
-  gain.connect(audioCtx.destination);
+//   // It seems necessary to connect the stream to a sink for the pipeline to work, contrary to documentataions.
+//   // As a workaround, here we create a gain node with zero gain, and connect temp to the system audio output.
+//   mic.connect(melspectrogramNode);
+//   melspectrogramNode.connect(gain);
+//   gain.connect(audioCtx.destination);
 
-}
+// }
 
-function stopMicRecordStream() {
-  // stop mic stream
-  gumStream.getAudioTracks().forEach(function(track) {
-      track.stop();
-      gumStream.removeTrack(track);
-  });
-   audioCtx.close().then(function() {
-      // manage button state
-      // recordButton.classList.remove("recording");
-      // recordButton.innerHtml = 'RECORD';
+// function stopMicRecordStream() {
+//   // stop mic stream
+//   gumStream.getAudioTracks().forEach(function(track) {
+//       track.stop();
+//       gumStream.removeTrack(track);
+//   });
+//    audioCtx.close().then(function() {
+//       // manage button state
+//       // recordButton.classList.remove("recording");
+//       // recordButton.innerHtml = 'RECORD';
      
-      // disconnect nodes
-      mic.disconnect();
-      melspectrogramNode.disconnect();
-      gain.disconnect();
-      mic = undefined;
-      melspectrogramNode = undefined;
-      gain = undefined;
+//       // disconnect nodes
+//       mic.disconnect();
+//       melspectrogramNode.disconnect();
+//       gain.disconnect();
+//       mic = undefined;
+//       melspectrogramNode = undefined;
+//       gain = undefined;
   
-      console.log("Stopped recording ...");
-  });
-}
+//       console.log("Stopped recording ...");
+//   });
+// }
