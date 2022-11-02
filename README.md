@@ -62,7 +62,7 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
   <summary>Project Description</summary>
   
   
-  Here I visualize sound in the "shape" of the process most likely to have generated it. The goal is to recover this "shape" from real-world observations. You can try it at https://a-sumo.github.io/hyperstep/.
+  Here I visualize sound in the "shape" of the process most likely to have generated it. The goal is to recover this "shape" from real-world observations. You can try it at https://a-sumo.github.io/hyperstep/. Works best on Chrome, on short audio samples with isolated sounds. 
   
   Audio files used for the demos:
   [guitar](https://freesound.org/people/liezen3/sounds/466606/)
