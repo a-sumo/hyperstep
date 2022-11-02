@@ -1,4 +1,5 @@
 const path = require('path');
+var SRC = path.resolve(__dirname, 'src/assets/audio/');
 
  module.exports = {
    entry: {
@@ -19,13 +20,15 @@ const path = require('path');
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif)$/i,
-        type: 'asset/resource',
+        type: 'assets/',
       },
       {
         test: /\.mp3$/,
-        use: 'file-loader',
-        type: 'asset/audio',
-      },  
+        use:{
+          loader: 'file-loader',
+        },
+        type: "src/assets/audio/"
+      }
     ],
    }
 };

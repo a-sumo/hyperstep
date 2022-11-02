@@ -82,7 +82,14 @@ module.exports = (env, argv) => {
                 'raw-loader'
               ]
           },
-
+          // Audio
+          {
+            test: /\.mp3$/,
+            use:{
+              loader: 'file-loader',
+            },
+            type: "assets/audio/"
+          },
           // Fonts
           {
             test: /\.(ttf|eot|woff|woff2)$/,

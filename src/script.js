@@ -89,7 +89,8 @@ const fileInput = document.getElementById('loadFileInput');
 // const recordButton = document.getElementById('recordButton');
 const audioEl = document.getElementById('audio')
 const blob = window.URL || window.webkitURL;
-
+// const audio_file = require('audio/r2d2_talk.mp3');
+// console.log(audio_file);
 // Set up event listeners
 
 fileInput.addEventListener('change', () => loadFile(fileInput));
