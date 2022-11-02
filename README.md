@@ -4,12 +4,9 @@
 Hyperstep stems from a desire to make music by navigating into and operating on relevant spaces. 
 Many of the patterns we find in music originate from physical processes and interactions observed by humans in the 3d world. Hence, it is natural to build three-dimensional, immersive interfaces to interact with such processes to make music.
 
-In this repository, I plan on going over some of my ideas through multiple "depth passes". At each depth pass, I refine the algorithms, improve performance and add more explanatory content. This is mainly done to avoid getting lost into implementation details and to maximize throughput.
 ## [Organic drums through agent self-regulation](https://github.com/a-sumo/hyperstep/blob/main/colab/agent_self_regulation.ipynb)
 <details>
   <summary>Project Description</summary>
-  
-  [depth pass 0]
   
   In this notebook, I attempt to recreate organic temporal patterns and syncopation by modeling composition as an agent regulating internal properties through a set of sound-associated actions. The key insight is to assign opposite effects to kicks and snare/claps.
   
@@ -56,13 +53,19 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
 </details>
  
 ## [Volumetric synth control](https://a-sumo.github.io/hyperstep/)
-<img src= "https://user-images.githubusercontent.com/75185852/198890470-c8cd9fe5-298c-4cd3-9fdf-da4e7cd1ac1a.png" width="500"/>
+
+<img src= "https://user-images.githubusercontent.com/75185852/199251274-47f4dab3-a763-4cac-9da0-96f3b678b0f8.mp4" width="500"/>
+<img src= "https://user-images.githubusercontent.com/75185852/199347450-c1074afa-6426-4ecd-a25b-dc19c0291554.mp4" width="500"/>
+
+
 <details>
   <summary>Project Description</summary>
   
-  [depth pass 0]
   
-  Visualizing sound in the "shape" of the process most likely to have generated it. You can try it at https://a-sumo.github.io/hyperstep/.
-  Further explanations will be given in depth pass 1.
+  Here I visualize sound in the "shape" of the process most likely to have generated it. The goal is to recover this "shape" from real-world observations. You can try it at https://a-sumo.github.io/hyperstep/. Works best on Chrome, on short audio samples with isolated sounds. 
+  
+  Audio files used for the demos:
+  [guitar](https://freesound.org/people/liezen3/sounds/466606/)
+  [r2d2](https://freesound.org/people/mik300z/sounds/103525/)
 </details>
 
