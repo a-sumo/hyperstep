@@ -348,7 +348,7 @@ void main(void) {
     float u_coords_plane = playback_progress;
 
     // round box 
-    float dist_box = sdRoundBox(p_dist_r_t, df_scale * global_scale * 0.7, 0.0);
+    float dist_box = sdRoundBox(p_dist_r_t, df_scale * global_scale * 1.3, 0.0);
     float u_coords_box = u_coords_sphere;
 
     // TODO: curve
@@ -495,7 +495,7 @@ function init() {
   // const h = 2 * width; // frustum height
   // const aspect = window.innerWidth / window.innerHeight;
   // camera = new THREE.OrthographicCamera( - h * aspect / 2, h * aspect / 2, h / 2, - h / 2, 0.01, 1000 );
-  camera.position.set( -2, 2, 2 );
+  camera.position.set( -2, 1, 2 );
   scene.add(camera);
 
   // Clock
