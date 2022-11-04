@@ -2,11 +2,12 @@
 ## [WIP] Intuitive and interactive representations for music production. 
 
 Hyperstep stems from a desire to make music by navigating into and operating on relevant spaces. 
-Many of the patterns we find in music originate from physical processes and interactions observed by humans in the 3d world. Hence, it is natural to build three-dimensional, immersive interfaces to interact with such processes to make music.
+Many of the patterns we find in music originate from physical processes and interactions observed by humans in the 3d world. Hence, it is natural to build three-dimensional, immersive interfaces to interact with such processes and let music emerge as the result of those interactions.
 
 ## [Organic drums through agent self-regulation](https://github.com/a-sumo/hyperstep/blob/main/colab/agent_self_regulation.ipynb)
 <details>
   <summary>Project Description</summary>
+  
   
   In this notebook, I attempt to recreate organic temporal patterns and syncopation by modeling composition as an agent regulating internal properties through a set of sound-associated actions. The key insight is to assign opposite effects to kicks and snare/claps.
   
@@ -54,9 +55,8 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
  
 ## [Volumetric synth control](https://a-sumo.github.io/hyperstep/)
 
-<img src= "https://user-images.githubusercontent.com/75185852/199251274-47f4dab3-a763-4cac-9da0-96f3b678b0f8.mp4" width="500"/>
+<img src= "https://user-images.githubusercontent.com/75185852/199851952-30525228-27ca-4f32-9f7f-a04768d41703.mp4" width="500"/>
 <img src= "https://user-images.githubusercontent.com/75185852/199347450-c1074afa-6426-4ecd-a25b-dc19c0291554.mp4" width="500"/>
-
 
 <details>
   <summary>Project Description</summary>
@@ -65,7 +65,11 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
   Here I visualize sound in the "shape" of the process most likely to have generated it. The goal is to recover this "shape" from real-world observations. You can try it at https://a-sumo.github.io/hyperstep/. Works best on Chrome, on short audio samples with isolated sounds. 
   
   Audio files used for the demos:
-  [guitar](https://freesound.org/people/liezen3/sounds/466606/)
-  [r2d2](https://freesound.org/people/mik300z/sounds/103525/)
+  
+
+
+
+  [r2d2](https://freesound.org/people/mik300z/sounds/103525/) [kamehameha](https://www.youtube.com/watch?v=wolDR1gVrCo)
+
 </details>
 
