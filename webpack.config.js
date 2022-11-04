@@ -9,6 +9,13 @@ var SRC = path.resolve(__dirname, 'src/assets/audio/');
      filename: '[name].bundle.js',
      path: path.resolve(__dirname, 'dist'),
    },
+   devServer: {
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+      "Access-Control-Allow-Headers": "X-Requested-With, content-type, Authorization"
+    }
+  },
    module: {
     parser: {
       javascript : { importMeta: false }

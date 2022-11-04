@@ -68,11 +68,12 @@ const NUM_CURVE_POINTS = 5;
 // GUI
 const gui = new GUI( {width: 200 } );
 // gui parameters
+
 const params = {
   df_type: 0,dist_func_tube: 1.0, dist_func_box: 1.0, dist_func_plane: 1.0, df_sphere_tube : 0.0,
   df_sphere_box: 0.0, df_sphere_plane: 0.0, df_tube_box: 0.0, df_tube_plane: 0.0, df_plane_box: 0.0,
   scale_x: 1, scale_y: 1, scale_z: 1,
-  global_scale: 0.03,
+  global_scale: 0.03,  min_dist:0, max_dist:1,
   rot_x: 0, rot_y: 0, rot_z: 0,
   translation_x: 0, translation_y: 0, translation_z: 0,
   playback_rate: 1.0,
@@ -180,6 +181,8 @@ uniform float df_tube_plane;
 uniform float df_plane_box;
 uniform vec3 df_rot;
 uniform vec3 df_translation;
+uniform float min_dist;
+uniform float max_dist;
 
 // raycasting volume
 uniform float dt_scale;
@@ -206,8 +209,8 @@ vec2 intersect_box(vec3 aabbMin, vec3 aabbMax, vec3 orig, vec3 dir) {
 	float t1 = min(tmax.x, min(tmax.y, tmax.z));
 	return vec2(t0, t1);
 }
-// from: http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-glsl
-
+// Color conversions
+// from: http://lolengine.net/blog/2013/07/27/rgb-to-hsv-in-gls
 vec3 rgb2hsv(vec3 c) {
   vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
   vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
@@ -230,6 +233,17 @@ float linear_to_srgb(float x) {
 		return 12.92f * x;
 	}
 	return 1.055f * pow(x, 1.f / 2.4f) - 0.055f;
+}
+
+// Clamping
+float smoothClamp(float x, float a, float b)
+{
+    return smoothstep(0., 1., (x - a)/(b - a))*(b - a) + a;
+}
+
+float softClamp(float x, float a, float b)
+{
+    return smoothstep(0., 1., (2./3.)*(x - a)/(b - a) + (1./6.))*(b - a) + a;
 }
 
 float sdSphere( vec3 p, vec3 offset, float scale )
@@ -269,7 +283,7 @@ vec3 rotate(vec3 v, vec3 axis, float angle) {
 }
 float distCurve(vec3 p){
   // Experimental: compute distance from 3d curve
-  float min_dist = 10.0;
+  float min_d = 10.0;
   float du = 0.2;
   float u = 0.0;
   while(u < 1.0 ){
@@ -279,7 +293,7 @@ float distCurve(vec3 p){
     vec2 v_norm = vec2(u, 0.75);
     vec3 dir_vec = p - texture(curve_data, v_pos).rgb ;
 
-    min_dist = min(min_dist, length(dir_vec));
+    min_d = min(min_d, length(dir_vec));
     u += du;
   }
   return min_dist;
@@ -301,7 +315,10 @@ void main(void) {
 
   vec4 spec_val = texture(spectrum, vec2(0.0, 0.0));
   spec_val.rgba = vec4(0.0);
+
+  // Frequency coordinate
   float u_coords = 0.0;
+  // Time coordinate
   float v_coords = 0.0;
 
   float dist = 0.0;
@@ -381,7 +398,7 @@ void main(void) {
       dist =  mix(dist_plane, dist_box, df_plane_box);   
     }
 
-    v_coords = length(df_scale) * global_scale / max(dist, Epsilon);
+    v_coords = length(df_scale) * global_scale / max(pow(dist,2.0), Epsilon);
 
     spec_val = texture(spectrum, vec2(u_coords, v_coords));
 
@@ -393,15 +410,19 @@ void main(void) {
       v_coords < 0. || v_coords > 1.){
       spec_val = vec4(0.0);
     }
+    // Soft Clamp values
+    if (dist < min_dist || dist > max_dist){
+      spec_val *= softClamp(dist - max_dist, 0., 1.);
+    }
     vec4 val_color = vec4(0.0);
+
     float mixValue = max(dist, Epsilon);
     vec3 mix_color = vec3(0.0);
     if (color_mode == 0) {
-
       // Use color presets
-      vec4 preset_color = vec4(pow(spec_val.r,10.0) * 1.0/dist,
+      vec4 preset_color = vec4(pow(spec_val.r,10.0) * 1./dist,
       pow(spec_val.r, 2.0),
-      pow(spec_val.r, 0.0) * 1.0/dist, spec_val.r) ;
+      pow(spec_val.r, 0.0) * 1./dist, spec_val.r) ;
 
       // swizzle color components to define presets
       if ( color_preset_type == 0){
@@ -537,6 +558,8 @@ function init() {
     'volume_scale': { value: new THREE.Vector3( x_scale, y_scale, z_scale ) },
     'volume': { value: create3dDataTexture(x_dim, y_dim, z_dim) },
     'volume_dims': { value: new THREE.Vector3( x_dim, y_dim, z_dim) },
+    'min_dist': { value: params.min_dist},
+    'max_dist': { value: params.max_dist},
     'color_mode': { value: params.color_mode},
     'color_preset_type': { value: params.color_preset_type},
     'color_space': {value: params.color_space},
@@ -810,12 +833,18 @@ function setMeshTexture(texture){
 }
 
 function addGUI() {
-  gui.add( params, 'playback_rate', 0.01, 10).step(0.001).name( 'playback_rate' ).onChange( function ( value ) {
+  gui.add( params, 'playback_rate').step(0.001).name( 'playback_rate' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['playback_rate']['value'] = 1.0 / value;
     audioEl.playbackRate = value;
   } );
   // Distance Function
   const df_folder = gui.addFolder('distance function') ;
+  df_folder.add( params, 'min_dist').step(0.01).name( 'min_dist' ).onChange( function ( value ) {
+    (volumeMesh.material).uniforms['min_dist']['value'] = value;
+  } );
+  df_folder.add( params, 'max_dist').step(0.01).name( 'max_dist' ).onChange( function ( value ) {
+    (volumeMesh.material).uniforms['max_dist']['value'] = value;
+  } );
   df_folder.add( params, 'df_type', {
     'Sphere - Tube': 0,'Sphere - Box': 1,'Sphere - Plane': 2,
     'Tube - Box': 3, 'Tube - Plane': 4,'Plane - Box': 5}).name( 'sphere/tube' ).onChange( function ( value ) {
@@ -839,34 +868,35 @@ function addGUI() {
   df_folder.add( params, 'df_plane_box', 0, 1).step(0.01).name( 'plane/box' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_plane_box']['value'] = value;
   } );
-  df_folder.add( params, 'global_scale', 0.001, 10).step(0.0001).name( 'global_scale' ).onChange( function ( value ) {
+  df_folder.add( params, 'global_scale').step(0.0001).name( 'global_scale' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['global_scale']['value'] = value;
   } );
-  df_folder.add( params, 'scale_x', 0.0001, 1).step(0.00002).name( 'scale_x' ).onChange( function ( value ) {
+  const transforms = gui.addFolder('transforms') ;
+  transforms.add( params, 'scale_x', 0, 1).step(0.00001).name( 'scale_x' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_scale']['value'] = new THREE.Vector3(value, params.scale_y, params.scale_z);
   } );
-  df_folder.add( params, 'scale_y', 0.0001, 1).step(0.00002).name( 'scale_y' ).onChange( function ( value ) {
+  transforms .add( params, 'scale_y', 0, 1).step(0.00001).name( 'scale_y' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_scale']['value'] = new THREE.Vector3(params.scale_x, value, params.scale_z);
   } );
-  df_folder.add( params, 'scale_z', 0.0001, 1).step(0.00002).name( 'scale_z' ).onChange( function ( value ) {
+  transforms.add( params, 'scale_z', 0, 1).step(0.00001).name( 'scale_z' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_scale']['value'] = new THREE.Vector3(params.scale_x, params.scale_y, value);
   } );
-  df_folder.add( params, 'rot_x', -360, 360).step(1).name( 'rotate_x' ).onChange( function ( value ) {
+  transforms.add( params, 'rot_x', -360, 360).step(0.1).name( 'rotate_x' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_rot']['value'] = new THREE.Vector3(value, params.rot_y, params.rot_z);
   } );
-  df_folder.add( params, 'rot_y', -360, 360).step(1).name( 'rotate_y' ).onChange( function ( value ) {
+  transforms.add( params, 'rot_y', -360, 360).step(0.1).name( 'rotate_y' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_rot']['value'] = new THREE.Vector3(params.rot_x, value, params.rot_z);
   } );
-  df_folder.add( params, 'rot_z', -360, 360).step(1).name( 'rotate_z' ).onChange( function ( value ) {
+  transforms.add( params, 'rot_z', -360, 360).step(0.1).name( 'rotate_z' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_rot']['value'] = new THREE.Vector3(params.rot_x, params.rot_y, value);
   } );
-  df_folder.add( params, 'translation_x', -2, 2).step(0.01).name( 'translate_x' ).onChange( function ( value ) {
+  transforms.add( params, 'translation_x').step(0.01).name( 'translate_x' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_translation']['value'] = new THREE.Vector3(value, params.translation_y, params.translation_z);
   } );
-  df_folder.add( params, 'translation_y', -2, 2).step(0.01).name( 'translate_y' ).onChange( function ( value ) {
+  transforms.add( params, 'translation_y').step(0.01).name( 'translate_y' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_translation']['value'] = new THREE.Vector3(params.translation_x, value, params.translation_z);
   } );
-  df_folder.add( params, 'translation_z', -2, 2).step(0.01).name( 'translate_z' ).onChange( function ( value ) {
+  transforms.add( params, 'translation_z').step(0.01).name( 'translate_z' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['df_translation']['value'] = new THREE.Vector3(params.translation_x, params.translation_y, value);
   } );
   // Color
@@ -897,8 +927,8 @@ function addGUI() {
   // spectrogram_folder.add( params, 'spec_hop_length', 8,).step(1).name( 'spec_hop_length' );
   // spectrogram_folder.add( params, 'fft_size', {'128': 128, '256': 256,
   //  '512':512, '1024': 1024, '2048':2048} ).name( 'fft_size' );
-  // spectrogram_folder.add( params, 'f_min', 30, ).step(10).name( 'f_min' );
-  // spectrogram_folder.add( params, 'f_max', 30, 16000).step(10).name( 'f_max' );
+  spectrogram_folder.add( params, 'f_min', 30, ).step(10).name( 'f_min' );
+  spectrogram_folder.add( params, 'f_max', 30, 16000).step(10).name( 'f_max' );
   // Raycasting
   const raycasting_folder = gui.addFolder('raycasting') ;
   raycasting_folder.add( params, 'dt_scale', 0.005,).step(0.001).name( 'dt_scale' ).onChange( function ( value ) {
