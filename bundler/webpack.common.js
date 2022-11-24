@@ -1,25 +1,56 @@
-const HtmlWebpackPlugin = require('html-webpack-plugin')
-const MiniCSSExtractPlugin = require('mini-css-extract-plugin')
-const path = require('path')
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const path = require('path');
+
+const pages = ["home", "volume", "vector_field"];
 
 module.exports = (env, argv) => {
   return {
-    entry: path.resolve(__dirname, '../src/script.js'),
+    // entry: path.resolve(__dirname, '../src/script.js'),
+    entry: pages.reduce((config, page) => {
+      if (page == 'home'){
+        config[page] = `./src/script.js`;
+      }
+      else{
+        config[page] = `./src/${page}/script.js`;
+      }
+      return config;
+    }, {}),
     output:
     {
       filename: 'bundle.[contenthash].js',
       path: path.resolve(__dirname, '../dist'),
-      publicPath: argv.mode === 'production' ? '/hyperstep/' : '/'
+      publicPath: argv.mode === 'production' ? '/hyperstep' : '/'
     },
+     optimization: {
+    splitChunks: {
+      chunks: "all",
+    },
+  },
     devtool: 'source-map',
-    plugins:
-      [
-        new HtmlWebpackPlugin({
-          template: path.resolve(__dirname, '../src/index.html'),
-          minify: true
-        }),
-        new MiniCSSExtractPlugin()
-      ],
+      plugins: [new MiniCssExtractPlugin()].concat(
+        pages.map(
+          (page) =>
+            {
+              if (page == 'home'){
+                return new HtmlWebpackPlugin({
+                  inject: true,
+                  template: `./src/index.html`,
+                  filename: `index.html`,
+                  chunks: [page],
+                })
+              }
+              else{
+                return new HtmlWebpackPlugin({
+                  inject: true,
+                  template: `./src/${page}/index.html`,
+                  filename: `${page}/index.html`,
+                  chunks: [page],
+                })
+            }
+          }
+        )
+      ),
     module:
     {
       rules:
@@ -52,25 +83,16 @@ module.exports = (env, argv) => {
             test: /\.css$/,
             use:
               [
-                MiniCSSExtractPlugin.loader,
-                'css-loader'
+                MiniCssExtractPlugin.loader,
+                'css-loader',
+                'postcss-loader'
               ]
           },
 
           // Images
           {
-            test: /\.(jpg|png|gif|svg|gltf|bin|ico)$/,
-            use:
-              [
-                {
-                  loader: 'file-loader',
-                  options:
-                  {
-                    outputPath: 'assets/images/',
-                    name: '[name].[ext]'
-                  }
-                }
-              ]
+            test:  /\.(jpg|png|gif|svg|gltf|bin|ico)$/,
+            type: 'asset/resource',
           },
 
           // Shaders
