@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <title>Volume</title>
+</head>
+
+<body>
+    <section >
+        <label for="loadFileInput"class="button"
+        id = "loadFileBtn">
+        Load Audio File 
+        </label>
+        <input           
+        accept=".wav,.mp3,.oga,.aac,.flac"
+        className="recorder__input"
+        type="file" 
+        id="loadFileInput">
+        <!-- <button id="update">
+			Update
+		</button> -->
+        <a href="https://github.com/a-sumo/pattern-sampler/blob/main/audio/music/103525__mik300z__r2-talk.wav?raw=true" download class="button">R2D2</a>
+        <a href="https://github.com/a-sumo/pattern-sampler/blob/main/audio/music/theremin_tone.mp3?raw=true" download class="button">Theremin</a>
+        <a href="https://github.com/a-sumo/pattern-sampler/blob/main/audio/music/231578__lemoncreme__floating-synth-melody-at-130-bpm-c-major-loop-music.mp3?raw=true" download class="button">Melody</a>
+    </section>
+    <section>
+        <audio id="audio" controls autostart="0" autostart="false" preload ="none"></audio>
+    </section>
+
+</body>
+
+</html>
