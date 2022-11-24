@@ -1,18 +1,64 @@
+
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const pages = ["home", "volume", "vector_field"];
 const path = require('path');
 
  module.exports = {
-   entry: {
-    index: './src/index.js'
-   },
+   entry: pages.reduce((config, page) => {
+    if (page == 'home'){
+      config[page] = `./src/script.js`;
+    }
+    else{
+      config[page] = `./src/${page}/script.js`;
+    }
+    return config;
+  }, {}),
    output: {
      filename: '[name].bundle.js',
      path: path.resolve(__dirname, 'dist'),
    },
+   optimization: {
+    splitChunks: {
+      chunks: "all",
+    },
+  },
+  plugins: [new MiniCssExtractPlugin()].concat(
+    pages.map(
+      (page) =>
+        {
+          if (page == 'home'){
+            return new HtmlWebpackPlugin({
+              inject: true,
+              template: `./src/index.html`,
+              filename: `index.html`,
+              chunks: [page],
+            })
+          }
+          else{
+            return new HtmlWebpackPlugin({
+              inject: true,
+              template: `./src/${page}/index.html`,
+              filename: `${page}/index.html`,
+              chunks: [page],
+            })
+        }
+      }
+    )
+  ),
    module: {
     rules: [
       {
-        test: /\.css$/i,
-        use: ['style-loader', 'css-loader'],
+        test: /\.(jpg|png|svg|gif)$/,
+        type: 'asset/resource',
+      },
+      {
+        test: /\.css$/,
+        use:
+          [
+            MiniCssExtractPlugin.loader,
+            'css-loader',
+            'postcss-loader'
+          ]
       },
       {
         test: /\.js$/,

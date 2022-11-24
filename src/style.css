@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 * {
   box-sizing: border-box;
   scroll-behavior: smooth;
@@ -25,14 +29,12 @@ section {
   margin-bottom: 4px;
 }
 a {
-  color: #2a7ae2;
+  color: #111;
   text-decoration: none;
 }
-a:visited {
-  color: #1756a9;
-}
+
 a:hover {
-  color: #111;
+  color: #2a7ae2;
   text-decoration: none;
 }
 
@@ -76,17 +78,12 @@ input[type="file"] {
     padding: 6px 12px;
     cursor: pointer;
 }
-.player-container {
-  margin-top: 14px;
-  margin-bottom: 24px;
-}
-.visualizer-container {
-  background: white;
-  padding: 14px;
-  overflow-x: auto;
-  border: 3px solid black;
-  margin-top: -3px;  /* so that the border doesn't overlap with the play buttons */
-}
+
+
+
+
+
+
 
 
 
