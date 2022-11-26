@@ -2,7 +2,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const path = require('path');
 
-const pages = ["home", "volume", "vector_field"];
+const pages = ["home", "volume", "vector_field", "automaton"];
 
 module.exports = (env, argv) => {
   return {
@@ -22,11 +22,17 @@ module.exports = (env, argv) => {
       path: path.resolve(__dirname, '../dist'),
       publicPath: argv.mode === 'production' ? '/hyperstep' : '/'
     },
-     optimization: {
+    optimization: {
     splitChunks: {
       chunks: "all",
+      },
     },
-  },
+    devServer: {
+      headers: {
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Opener-Policy': 'same-origin',
+      },
+    },
     devtool: 'source-map',
       plugins: [new MiniCssExtractPlugin()].concat(
         pages.map(
@@ -64,6 +70,7 @@ module.exports = (env, argv) => {
           // JS
           {
             test: /\.js$/,
+            resourceQuery: { not: [/raw/] },
             exclude: /node_modules/,
             use:
               [
