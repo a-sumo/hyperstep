@@ -520,11 +520,11 @@ video {
 .grid {
   display: grid;
 }
-.h-full {
-  height: 100%;
-}
 .h-20 {
   height: 5rem;
+}
+.h-full {
+  height: 100%;
 }
 .w-56 {
   width: 14rem;
