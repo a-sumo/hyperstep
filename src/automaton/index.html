@@ -8,14 +8,27 @@
 </head>
 
 <body>
-    <div class="flex justify-center" id="recordButtonContainer">
-            <button id="recordButton" class="ui red inverted big button record-button" role="switch">
-                Mic</i>
-            </button>
-    </div>
-    <div>
-        <canvas id="myChart"></canvas>
-    </div>
-</body>
+    <section >
+        <label for="loadFileInput"class="button rounded border-4 border-black hover:shadow-[2px_2px_0_0_#000]" 
+        id = "loadFileBtn">
+        Load Audio File 
+        </label>
+        <input           
+        accept=".wav,.mp3,.oga,.aac,.flac"
+        className="recorder__input"
+        type="file" 
+        id="loadFileInput">
+        <a class="button rounded border-4 ml-1 border-black hover:shadow-[2px_2px_0_0_#000]">1</a>
+        <a class="button rounded border-4 border-black hover:shadow-[2px_2px_0_0_#000]">2</a>
+        <a class="button rounded border-4 border-black hover:shadow-[2px_2px_0_0_#000]">3</a>
+        <button id="recordButton" class="button rounded border-4 border-black hover:shadow-[2px_2px_0_0_#000]" role="switch">
+            mic</i>
+        </button>
+    </section>
+    <section>
+        <audio id="audioPlayer" controls autostart="0" autostart="false" preload ="none"></audio>
+    </section>
+
+</body>    
 
 </html>

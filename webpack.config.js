@@ -24,8 +24,9 @@ const path = require('path');
     },
   },
   devServer: {
-    allowedHosts: 'auto',
+    // allowedHosts: 'auto',
     headers: {
+      // these headers are necessary for SharedArrayBuffers to work on localhost
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
     },
@@ -84,7 +85,7 @@ const path = require('path');
         type: 'asset/source'
       },
       {
-        test: /\.(ogg|mp3|wav|mpe?g)$/i,
+        test: /\.(ogg|mp3|wav|mpe?g)$/,
         type: 'asset/resource',
       },
     ],

@@ -113,11 +113,8 @@ module.exports = (env, argv) => {
           },
           // Audio
           {
-            test: /\.mp3$/,
-            use:{
-              loader: 'file-loader',
-            },
-            type: "assets/audio/"
+            test: /\.(ogg|mp3|wav|mpe?g)$/,
+            type: 'asset/resource',
           },
           // Fonts
           {
