@@ -1,6 +1,7 @@
 
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const pages = ["home", "volume", "vector_field"];
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const pages = ["home", "volume", "vector_field", "automaton"];
 const path = require('path');
 
  module.exports = {
@@ -13,16 +14,25 @@ const path = require('path');
     }
     return config;
   }, {}),
-   output: {
+  output: {
      filename: '[name].bundle.js',
      path: path.resolve(__dirname, 'dist'),
    },
-   optimization: {
+  optimization: {
     splitChunks: {
       chunks: "all",
     },
   },
-  plugins: [new MiniCssExtractPlugin()].concat(
+  devServer: {
+    allowedHosts: 'auto',
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+    },
+  },
+  plugins: [
+  new HtmlWebpackPlugin(),
+  new MiniCssExtractPlugin()].concat(
     pages.map(
       (page) =>
         {
@@ -62,6 +72,7 @@ const path = require('path');
       },
       {
         test: /\.js$/,
+        resourceQuery: { not: [/raw/] },
         exclude: /node_modules/,
         use:
           [
@@ -69,13 +80,12 @@ const path = require('path');
           ]
       },
       {
-        test: /\.mp3$/,
-        dependency: { not: ['url'] },
-        use: [
-          {
-            loader: 'file-loader',
-          },
-        ],
+        resourceQuery: /raw/,
+        type: 'asset/source'
+      },
+      {
+        test: /\.(ogg|mp3|wav|mpe?g)$/i,
+        type: 'asset/resource',
       },
     ],
    }
