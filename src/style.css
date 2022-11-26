@@ -7,17 +7,6 @@
   scroll-behavior: smooth;
 }
 
-body {
-  margin: 0;
-  padding: 0px;
-  font: 300 16px/1.5 "Roboto", Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
-  color: #111;
-  background-color: #fdfdfd;
-  -webkit-font-smoothing: antialiased;
-  width: 100%;
-  max-width: 1000px;
-}
-
 [disabled] {
   opacity: 0.5;
   pointer-events: none;
@@ -33,11 +22,6 @@ a {
   text-decoration: none;
 }
 
-a:hover {
-  color: #2a7ae2;
-  text-decoration: none;
-}
-
 button, .button {
   font-family: "Roboto", Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
   text-transform: uppercase;
@@ -48,10 +32,7 @@ button, .button {
   background: transparent;
   cursor: pointer;
 }
-button:hover, .button:hover {
-  background: hsl(219, 100%, 65%);
-  color: rgb(255, 255, 255);
-}
+
 button:active, .button:active{
   background: #6fc982;
   color: white;
@@ -72,12 +53,7 @@ input[type="file"] {
 	position: absolute;
 	z-index: -1;
 }
-.custom-file-upload {
-    border: 1px solid #ccc;
-    display: inline-block;
-    padding: 6px 12px;
-    cursor: pointer;
-}
+
 
 
 
