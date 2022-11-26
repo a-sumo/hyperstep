@@ -6,14 +6,8 @@ import Stats from 'three/examples/jsm/libs/stats.module';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 import {loadAudioFromFile, resampleAndMakeMono, melSpectrogram, powerToDb} from '@magenta/music/esm/core/audio_utils';
 import { GUI } from 'dat.gui/build/dat.gui.min.js';
+import audioFile1 from "[javascript/auto]!=!!!file-loader!../assets/audio/r2d2_talk.mp3";
 
-// This project may use WebGL2-exclusive features
-// See:  https://webgl2fundamentals.org/webgl/lessons/webgl2-whats-new.html
-if ( WebGL.isWebGL2Available() === false ) {
-
-  document.body.appendChild( WebGL.getWebGL2ErrorMessage() );
-
-}
 
 let camera, 
   scene, 
@@ -31,7 +25,14 @@ let analyser,
   fileURL,
   audioBuffer
 
+console.log(audioFile1);
+// Error Message for WebGL2-exclusive features
+// See:  https://webgl2fundamentals.org/webgl/lessons/webgl2-whats-new.html
+if ( WebGL.isWebGL2Available() === false ) {
 
+  document.body.appendChild( WebGL.getWebGL2ErrorMessage() );
+
+}
 // global var for web audio API AudioContext
 let audioCtx;
 
