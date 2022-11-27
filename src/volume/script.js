@@ -474,7 +474,6 @@ if (navigatorCopy.mediaDevices === undefined) {
 // Set up UI Elements
 const fileInput = document.getElementById('loadFileInput');
 const recordButton = document.getElementById('recordButton');
-const runButton = document.getElementById('runButton');
 const player = document.getElementById("audioPlayer");
 player.src = audioFiles['audio-1'];
 player.load();
@@ -974,7 +973,6 @@ function init() {
   document.addEventListener('pointermove', onPointerMove);
   window.addEventListener('resize', onWindowResize);
   recordButton.addEventListener('click', onRecordClickHandler);
-  // runButton.addEventListener('click', onRunClickHandler);
   player.addEventListener('play', startAudioProcessingMediaElt);
   player.addEventListener('pause', stopAudioProcessingMediaElt);
   
@@ -1022,9 +1020,9 @@ function onPointerMove(event) {
 }
 
 function addHelpers(scene) {
-  const gridHelper = new THREE.GridHelper(10, 10);
-  scene.add(gridHelper);
-  stats = Stats();
+  // const gridHelper = new THREE.GridHelper(10, 10);
+  // scene.add(gridHelper);
+  // stats = Stats();
   //document.body.appendChild(stats.dom)
   const axesHelper = new THREE.AxesHelper(3);
   scene.add(axesHelper);
@@ -1039,7 +1037,7 @@ function animate() {
   requestAnimationFrame(animate);
   updateMeshTexture();
   updateUniforms();
-  stats.update();
+  //stats.update();
   render();
 }
 
@@ -1229,22 +1227,6 @@ function onRecordClickHandler() {
     startMicRecordStream();
   }
 }
-function onRunClickHandler() {
-  running = runButton.classList.contains("running");
-  if (running) {
-    runButton.classList.remove("running");
-    runButton.innerHTML = "Run";
-    runButton.classList.remove("bg-emerald-200");
-    runButton.disabled = false;
-    stopAudioProcessingMediaElt();
-  } else {
-    if(recording){
-      stopMicRecordStream();
-    }
-    runButton.disabled = true;
-    startAudioProcessingMediaElt();
-  }
-}
 
 // record native microphone input and do further audio processing on each audio buffer using the given callback functions
 function startMicRecordStream() {
@@ -1328,12 +1310,6 @@ function startAudioProcessingMediaElt() {
     .catch((msg) => {
       console.log(`There was a problem retrieving the AudioWorklet module code: \n ${msg}`);
     })
-  //  // set button to stop
-  runButton.classList.add("running");
-  runButton.innerHTML = "Stop";
-  runButton.classList.add("bg-emerald-200");
-  runButton.disabled = false;
-
 }
 function stopMicRecordStream() {
   // stop mic stream
@@ -1361,10 +1337,6 @@ function stopMicRecordStream() {
 function stopAudioProcessingMediaElt() {
   player.pause();
   audioCtx.close().then(function () {
-    // manage button state
-    runButton.classList.remove("running");
-    runButton.innerHTML = 'Run';
-
     // disconnect nodes
     source.disconnect();
     melspectrogramNode.disconnect();
