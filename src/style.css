@@ -2,48 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
+/* * {
   box-sizing: border-box;
   scroll-behavior: smooth;
-}
+} */
 
-[disabled] {
+/* [disabled] {
   opacity: 0.5;
   pointer-events: none;
-}
+} */
 
 section {
   background: #F2F2F2;
   padding: 14px;
   margin-bottom: 4px;
 }
-a {
-  color: #111;
-  text-decoration: none;
-}
 
-button, .button {
-  font-family: "Roboto", Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
-  text-transform: uppercase;
-  font-weight: 700;
-  font-size: 13px;
-  padding: 4px 16px;
-  margin-right: 4px;
-  background: transparent;
-  cursor: pointer;
-}
-
-button:active, .button:active{
-  background: #6fc982;
-  color: white;
-}
-
-button, .button, textarea {
-  outline: none;
-  border: 3px solid #222;
-  color: #222;
-  background: white;
-}
 
 input[type="file"] {
 	width: 0.1px;
