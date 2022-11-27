@@ -968,7 +968,7 @@ function init() {
   raycaster = new THREE.Raycaster();
 
   // Add helpers
-  addHelpers(scene);
+  //addHelpers(scene);
   render();
   document.addEventListener('pointermove', onPointerMove);
   window.addEventListener('resize', onWindowResize);
