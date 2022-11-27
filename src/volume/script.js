@@ -1,72 +1,54 @@
-
 import '../style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
-import {loadAudioFromFile, resampleAndMakeMono, melSpectrogram, powerToDb} from '@magenta/music/esm/core/audio_utils';
 import { GUI } from 'dat.gui/build/dat.gui.min.js';
+// import msp from './audio-processors/melspectrogram-processor.js?raw'
+import audioFile1 from "[javascript/auto]!=!!!file-loader!../assets/audio/r2d2_talk.mp3";
+import audioFile2 from "[javascript/auto]!=!!!file-loader!../assets/audio/synth_melody.mp3";
+import audioFile3 from "[javascript/auto]!=!!!file-loader!../assets/audio/theremin_tone.mp3";
+import {loadAudioFromFile} from '@magenta/music/esm/core/audio_utils';
 
-let camera, 
-  scene, 
-  renderer, 
-  controls, 
-  stats
+const audioFiles = {
+  "audio-1" : audioFile1,
+  "audio-2" : audioFile2,
+  "audio-3" : audioFile3,
+}
 
-let debugPlaneMesh,
+if (WebGL.isWebGL2Available() === false) {
+
+  document.body.appendChild(WebGL.getWebGL2ErrorMessage());
+
+}
+
+let camera,
+  scene,
+  renderer,
+  controls,
+  stats,
+  raycaster
+
+let planeMesh,
+  debugPlaneMesh,
   volumeMesh,
+  pointer,
+  specTexture,
   clock,
   curveMesh,
   curve_data
 
-let analyser,
-  fileURL,
-  audioBuffer
-
-// Error Message for WebGL2-exclusive features
-// See:  https://webgl2fundamentals.org/webgl/lessons/webgl2-whats-new.html
-if ( WebGL.isWebGL2Available() === false ) {
-
-  document.body.appendChild( WebGL.getWebGL2ErrorMessage() );
-
-}
+let AudioContext;
 // global var for web audio API AudioContext
 let audioCtx;
+let bufferSize = 1024;
+let hopSize = 512;
+let melNumBands = 96;
+let numFrames = 1;
+let exports = {};
+let scaledMelspectrum = [];
+let recording,running
 
-try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    //audioCtx = new AudioContext();
-} catch (e) {
-    throw "Could not instantiate AudioContext: " + e.message;
-}
-
-// Volume constants
-const x_dim = 4;
-const y_dim = 4;
-const z_dim = 4;
-const x_scale = 1;
-const y_scale = 1;
-const z_scale = 1;
-
-// Magenta Music  spectrogram constants
-const SAMPLE_RATE = 16000;
-const MEL_SPEC_BINS = 229;
-const SPEC_HOP_LENGTH = 512;
-const F_MIN = 30;
-const F_MAX = SAMPLE_RATE / 2;
-
-// Live Audio spectrogram constants
-
-const FFT_SIZE = 2048;
-const NUM_FRAMES = 1024;
-const MIN_DB = -80;
-const MAX_DB = -10;
-analyser = audioCtx.createAnalyser();
-
-// Curve constants
-const NUM_CURVE_POINTS = 5;
-
-// GUI
 const gui = new GUI( {width: 200 } );
 // gui parameters
 
@@ -80,65 +62,430 @@ const params = {
   playback_rate: 1.0,
   color_mode: 0, color_preset_type: 0, color_space: 0, uni_color: "#9838ff",
   color_1: "#000000", color_2: "#ffffff",
-  sample_rate: SAMPLE_RATE,
-  mel_spec_bins: MEL_SPEC_BINS,
-  fft_size: FFT_SIZE,
-  spec_hop_length: SPEC_HOP_LENGTH,
-  f_min: F_MIN,
-  f_max: F_MAX,
+  mel_spec_bins: melNumBands,
+  fft_size: bufferSize,
   dt_scale: 0.1,
   max_steps: 100,
 };
 
-// Set up UI Elements 
+// From a series of URL to js files, get an object URL that can be loaded in an
+// AudioWorklet. This is useful to be able to use multiple files (utils, data
+// structure, main DSP, etc.) without either using static imports, eval, manual
+// concatenation with or without a build step, etc.
+function URLFromFiles(files) {
+  const promises = files
+    .map((file) => fetch(file)
+      .then((response) => response.text()));
+  return Promise
+    .all(promises)
+    .then((texts) => {
+      texts.unshift("var exports = {};"); // hack to make injected umd modules work
+      const text = texts.join('');
+      const blob = new Blob([text], { type: "text/javascript" });
+
+      return URL.createObjectURL(blob);
+    });
+}
+
+/////* START OF RINGBUF CODE */////
+'use strict';
+
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+// Send audio interleaved audio frames between threads, wait-free.
+//
+// Those classes allow communicating between a non-real time thread (browser
+// main thread or worker) and a real-time thread (in an AudioWorkletProcessor).
+// Write and Reader cannot change role after setup, unless externally
+// synchronized.
+//
+// GC _can_ happen during the initial construction of this object when hopefully
+// no audio is being output. This depends on how implementations schedule GC
+// passes. After the setup phase no GC is triggered on either side of the queue..
+
+// Interleaved -> Planar audio buffer conversion
+//
+// `input` is an array of n*128 frames arrays, interleaved, where n is the
+// channel count.
+// output is an array of 128-frames arrays.
+//
+// This is useful to get data from a codec, the network, or anything that is
+// interleaved, into planar format, for example a Web Audio API AudioBuffer or
+// the output parameter of an AudioWorkletProcessor.
+function deinterleave(input, output) {
+  var channel_count = input.length / 256;
+  if (output.length != channel_count) {
+    throw "not enough space in output arrays";
+  }
+  for (var i = 0; i < channelCount; i++) {
+    let out_channel = output[i];
+    let interleaved_idx = i;
+    for (var j = 0; j < 128; ++j) {
+      out_channel[j] = input[interleaved_idx];
+      interleaved_idx += channel_count;
+    }
+  }
+}
+// Planar -> Interleaved audio buffer conversion
+//
+// Input is an array of `n` 128 frames Float32Array that hold the audio data.
+// output is a Float32Array that is n*128 elements long. This function is useful
+// to get data from the Web Audio API (that does planar audio), into something
+// that codec or network streaming library expect.
+function interleave(input, output) {
+  if (input.length * 128 != output.length) {
+    throw "input and output of incompatible sizes";
+  }
+  var out_idx = 0;
+  for (var i = 0; i < 128; i++) {
+    for (var channel = 0; j < output.length; j++) {
+      output[out_idx] = input[channel][i];
+      out_idx++;
+    }
+  }
+}
+
+class AudioWriter {
+  // From a RingBuffer, build an object that can enqueue enqueue audio in a ring
+  // buffer.
+  constructor(ringbuf) {
+    if (ringbuf.type() != "Float32Array") {
+      throw "This class requires a ring buffer of Float32Array";
+    }
+    this.ringbuf = ringbuf;
+  }
+  // Enqueue a buffer of interleaved audio into the ring buffer.
+  // Returns the number of samples that have been successfuly written to the
+  // queue. `buf` is not written to during this call, so the samples that
+  // haven't been written to the queue are still available.
+  enqueue(buf) {
+    return this.ringbuf.push(buf);
+  }
+  // Query the free space in the ring buffer. This is the amount of samples that
+  // can be queued, with a guarantee of success.
+  available_write() {
+    return this.ringbuf.available_write();
+  }
+}
+
+class AudioReader {
+  constructor(ringbuf) {
+    if (ringbuf.type() != "Float32Array") {
+      throw "This class requires a ring buffer of Float32Array";
+    }
+    this.ringbuf = ringbuf;
+  }
+  // Attempt to dequeue at most `buf.length` samples from the queue. This
+  // returns the number of samples dequeued. If greater than 0, the samples are
+  // at the beginning of `buf`
+  dequeue(buf) {
+    if (this.ringbuf.empty()) {
+      return 0;
+    }
+    return this.ringbuf.pop(buf);
+  }
+  // Query the occupied space in the queue. This is the amount of samples that
+  // can be read with a guarantee of success.
+  available_read() {
+    return this.ringbuf.available_read();
+  }
+}
+
+// Communicate parameter changes, lock free, no gc.
+//
+// between a UI thread (browser main thread or worker) and a real-time thread
+// (in an AudioWorkletProcessor). Write and Reader cannot change role after
+// setup, unless externally synchronized.
+//
+// GC can happen during the initial construction of this object when hopefully
+// no audio is being output. This depends on the implementation.
+//
+// Parameter changes are like in the VST framework: an index and a float value
+// (no restriction on the value).
+//
+// This class supports up to 256 parameters, but this is easy to extend if
+// needed.
+//
+// An element is a index, that is an unsigned byte, and a float32, which is 4
+// bytes.
+
+class ParameterWriter {
+  // From a RingBuffer, build an object that can enqueue a parameter change in
+  // the queue.
+  constructor(ringbuf) {
+    if (ringbuf.type() != "Uint8Array") {
+      throw "This class requires a ring buffer of Uint8Array";
+    }
+    const SIZE_ELEMENT = 5;
+    this.ringbuf = ringbuf;
+    this.mem = new ArrayBuffer(SIZE_ELEMENT);
+    this.array = new Uint8Array(this.mem);
+    this.view = new DataView(this.mem);
+  }
+  // Enqueue a parameter change for parameter of index `index`, with a new value
+  // of `value`.
+  // Returns true if enqueuing suceeded, false otherwise.
+  enqueue_change(index, value) {
+    const SIZE_ELEMENT = 5;
+    this.view.setUint8(0, index);
+    this.view.setFloat32(1, value);
+    if (this.ringbuf.available_write() < SIZE_ELEMENT) {
+      return false;
+    }
+    return this.ringbuf.push(this.array) == SIZE_ELEMENT;
+  }
+}
+
+class ParameterReader {
+  constructor(ringbuf) {
+    const SIZE_ELEMENT = 5;
+    this.ringbuf = ringbuf;
+    this.mem = new ArrayBuffer(SIZE_ELEMENT);
+    this.array = new Uint8Array(this.mem);
+    this.view = new DataView(this.mem);
+  }
+  dequeue_change(o) {
+    if (this.ringbuf.empty()) {
+      return false;
+    }
+    var rv = this.ringbuf.pop(this.array);
+    o.index = this.view.getUint8(0);
+    o.value = this.view.getFloat32(1);
+
+    return true;
+  }
+}
+
+// A Single Producer - Single Consumer thread-safe wait-free ring buffer.
+//
+// The producer and the consumer can be separate thread, but cannot change role,
+// except with external synchronization.
+
+class RingBuffer {
+  static getStorageForCapacity(capacity, type) {
+    if (!type.BYTES_PER_ELEMENT) {
+      throw "Pass in a ArrayBuffer subclass";
+    }
+    var bytes = 8 + (capacity + 1) * type.BYTES_PER_ELEMENT;
+    return new SharedArrayBuffer(bytes);
+  }
+  // `sab` is a SharedArrayBuffer with a capacity calculated by calling
+  // `getStorageForCapacity` with the desired capacity.
+  constructor(sab, type) {
+    if (!ArrayBuffer.__proto__.isPrototypeOf(type) &&
+      type.BYTES_PER_ELEMENT !== undefined) {
+      throw "Pass a concrete typed array class as second argument";
+    }
+
+    // Maximum usable size is 1<<32 - type.BYTES_PER_ELEMENT bytes in the ring
+    // buffer for this version, easily changeable.
+    // -4 for the write ptr (uint32_t offsets)
+    // -4 for the read ptr (uint32_t offsets)
+    // capacity counts the empty slot to distinguish between full and empty.
+    this._type = type;
+    this.capacity = (sab.byteLength - 8) / type.BYTES_PER_ELEMENT;
+    this.buf = sab;
+    this.write_ptr = new Uint32Array(this.buf, 0, 1);
+    this.read_ptr = new Uint32Array(this.buf, 4, 1);
+    this.storage = new type(this.buf, 8, this.capacity);
+  }
+  // Returns the type of the underlying ArrayBuffer for this RingBuffer. This
+  // allows implementing crude type checking.
+  type() {
+    return this._type.name;
+  }
+  // Push bytes to the ring buffer. `bytes` is an typed array of the same type
+  // as passed in the ctor, to be written to the queue.
+  // Returns the number of elements written to the queue.
+  push(elements) {
+    var rd = Atomics.load(this.read_ptr, 0);
+    var wr = Atomics.load(this.write_ptr, 0);
+
+    if ((wr + 1) % this._storage_capacity() == rd) {
+      // full
+      return 0;
+    }
+
+    let to_write = Math.min(this._available_write(rd, wr), elements.length);
+    let first_part = Math.min(this._storage_capacity() - wr, to_write);
+    let second_part = to_write - first_part;
+
+    this._copy(elements, 0, this.storage, wr, first_part);
+    this._copy(elements, first_part, this.storage, 0, second_part);
+
+    // publish the enqueued data to the other side
+    Atomics.store(
+      this.write_ptr,
+      0,
+      (wr + to_write) % this._storage_capacity()
+    );
+
+    return to_write;
+  }
+  // Read `elements.length` elements from the ring buffer. `elements` is a typed
+  // array of the same type as passed in the ctor.
+  // Returns the number of elements read from the queue, they are placed at the
+  // beginning of the array passed as parameter.
+  pop(elements) {
+    var rd = Atomics.load(this.read_ptr, 0);
+    var wr = Atomics.load(this.write_ptr, 0);
+
+    if (wr == rd) {
+      return 0;
+    }
+
+    let to_read = Math.min(this._available_read(rd, wr), elements.length);
+
+    let first_part = Math.min(this._storage_capacity() - rd, elements.length);
+    let second_part = to_read - first_part;
+
+    this._copy(this.storage, rd, elements, 0, first_part);
+    this._copy(this.storage, 0, elements, first_part, second_part);
+
+    Atomics.store(this.read_ptr, 0, (rd + to_read) % this._storage_capacity());
+
+    return to_read;
+  }
+
+  // True if the ring buffer is empty false otherwise. This can be late on the
+  // reader side: it can return true even if something has just been pushed.
+  empty() {
+    var rd = Atomics.load(this.read_ptr, 0);
+    var wr = Atomics.load(this.write_ptr, 0);
+
+    return wr == rd;
+  }
+
+  // True if the ring buffer is full, false otherwise. This can be late on the
+  // write side: it can return true when something has just been poped.
+  full() {
+    var rd = Atomics.load(this.read_ptr, 0);
+    var wr = Atomics.load(this.write_ptr, 0);
+
+    return (wr + 1) % this.capacity != rd;
+  }
+
+  // The usable capacity for the ring buffer: the number of elements that can be
+  // stored.
+  capacity() {
+    return this.capacity - 1;
+  }
+
+  // Number of elements available for reading. This can be late, and report less
+  // elements that is actually in the queue, when something has just been
+  // enqueued.
+  available_read() {
+    var rd = Atomics.load(this.read_ptr, 0);
+    var wr = Atomics.load(this.write_ptr, 0);
+    return this._available_read(rd, wr);
+  }
+
+  // Number of elements available for writing. This can be late, and report less
+  // elemtns that is actually available for writing, when something has just
+  // been dequeued.
+  available_write() {
+    var rd = Atomics.load(this.read_ptr, 0);
+    var wr = Atomics.load(this.write_ptr, 0);
+    return this._available_write(rd, wr);
+  }
+
+  // private methods //
+
+  // Number of elements available for reading, given a read and write pointer..
+  _available_read(rd, wr) {
+    if (wr > rd) {
+      return wr - rd;
+    } else {
+      return wr + this._storage_capacity() - rd;
+    }
+  }
+
+  // Number of elements available from writing, given a read and write pointer.
+  _available_write(rd, wr) {
+    let rv = rd - wr - 1;
+    if (wr >= rd) {
+      rv += this._storage_capacity();
+    }
+    return rv;
+  }
+
+  // The size of the storage for elements not accounting the space for the index.
+  _storage_capacity() {
+    return this.capacity;
+  }
+
+  // Copy `size` elements from `input`, starting at offset `offset_input`, to
+  // `output`, starting at offset `offset_output`.
+  _copy(input, offset_input, output, offset_output, size) {
+    for (var i = 0; i < size; i++) {
+      output[offset_output + i] = input[offset_input + i];
+    }
+  }
+}
+
+exports.AudioReader = AudioReader;
+exports.AudioWriter = AudioWriter;
+exports.ParameterReader = ParameterReader;
+exports.ParameterWriter = ParameterWriter;
+exports.RingBuffer = RingBuffer;
+exports.deinterleave = deinterleave;
+exports.interleave = interleave;
+
+/////* END OF RINGBUF CODE */////
+
+try {
+  AudioContext = window.AudioContext || window.webkitAudioContext;
+  audioCtx = new AudioContext();
+} catch (e) {
+  throw "Could not instantiate AudioContext: " + e.message;
+}
+// global var getUserMedia mic stream
+let gumStream;
+// global audio node variables
+let source, mic;
+
+let gain;
+let melspectrogramNode;
+
+// Shared data with AudioWorkletGlobalScope
+let audioReader;
+
+// Curve constants
+const NUM_CURVE_POINTS = 5;
+
+// Volume constants
+const x_dim = 4;
+const y_dim = 4;
+const z_dim = 4;
+const x_scale = 1;
+const y_scale = 1;
+const z_scale = 1;
+
+// Setup audio
+
+// Some browsers partially implement mediaDevices. We can't assign an object
+// with getUserMedia as it would overwrite existing properties.
+// Add the getUserMedia property if it's missing.
+let navigatorCopy = navigator;
+if (navigatorCopy.mediaDevices === undefined) {
+  navigatorCopy.mediaDevices = {};
+}
+// Set up UI Elements
 const fileInput = document.getElementById('loadFileInput');
-const audioEl = document.getElementById('audio')
+const recordButton = document.getElementById('recordButton');
+const runButton = document.getElementById('runButton');
+const player = document.getElementById("audioPlayer");
+player.src = audioFiles['audio-1'];
+player.load();
+
 const blob = window.URL || window.webkitURL;
-// const updateEl = document.getElementById('update'); 
-// updateEl.addEventListener('click', () => loadFile(fileInput));
-fileInput.addEventListener('change', () => loadFile(fileInput));
+const buttonGroup = document.getElementById("button-group");
 
-
-// Load audio file, generate mel spectrogram 
-// and return the spectrogram's data texture
-function loadFile(inputElement) {
-  //document.getElementById(`${prefix}_fileBtn`).setAttribute('disabled', '');
-  audioBuffer = loadAudioFromFile(inputElement.files[0]);
-  fileURL = blob.createObjectURL(inputElement.files[0]);
-  audioEl.src = fileURL;
-  return audioBuffer
-  .then(
-    (buffer) => {return preprocessAudio(buffer)})
-  .then(
-    (melSpec) => {
-      return createMMSpectrumDataTexture(melSpec, melSpec.length, MEL_SPEC_BINS)
-      } 
-  )
-  .then(
-    (dataTexture) => {return setMeshTexture(dataTexture)}
-  );
+function onLoadFile(inputElement){
+  player.src = blob.createObjectURL(inputElement.files[0]);
+  player.load();
 }
-
-// Compute mel spectrogram
-async function preprocessAudio(audioBuffer) {
-  const resampledMonoAudio = await resampleAndMakeMono(audioBuffer);
-  return powerToDb(melSpectrogram(resampledMonoAudio, {
-    sampleRate: params.sample_rate,
-    hopLength: params.spec_hop_length,
-    nMels: params.mel_spec_bins,
-    nFft: params.fft_size,
-    fMin: params.f_min,
-    fMax: params.f_max,
-  }));
-}
-// Play Audio File
-// async function playAudio(audioBuffer){
-//   const source = audioCtx.createBufferSource();
-//   source.buffer = audioBuffer;
-//   source.connect(audioCtx.destination);
-//   source.start();
-// }
-
 
 // Shaders 
 const raycastVertexShader = /* glsl */`
@@ -498,7 +845,6 @@ void main(void) {
 init();
 animate();
 
-
 function init() {
   scene = new THREE.Scene();
 
@@ -520,12 +866,9 @@ function init() {
   camera.position.set( -2, 1, 2 );
   scene.add(camera);
 
-  // Clock
-  clock = new THREE.Clock();
-
   // Controls
-  controls = new OrbitControls( camera, renderer.domElement );
-  controls.addEventListener( 'change', render );
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.addEventListener('change', render);
   controls.minZoom = 0.1;
   controls.maxZoom = 10;
   controls.enablePan = false;
@@ -534,23 +877,28 @@ function init() {
   // GUI
   addGUI();
 
+  // Clock 
+  clock = new THREE.Clock();
+
   // Debug spectrogram texture
   let planeGeo1 = new THREE.PlaneGeometry(2, 2);
   let planeMat1 = new THREE.MeshBasicMaterial({ map: createDataTexture(x_dim, y_dim), side: THREE.DoubleSide});
   debugPlaneMesh = new THREE.Mesh(planeGeo1, planeMat1);
   debugPlaneMesh .position.set( -2, 0, -1 );
-  // scene.add(debugPlaneMesh);
+  scene.add(debugPlaneMesh);
 
+  specTexture = createDataTexture(numFrames, melNumBands);
 
+  // Curve
   const curve = initCurveData(NUM_CURVE_POINTS);
-  const points = curve.getPoints( 5 );
-  const curve_geometry = new THREE.BufferGeometry().setFromPoints( points );
-  const curve_material = new THREE.LineBasicMaterial( { color: 0xff0000 } );
+  const points = curve.getPoints(5);
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
 
   // Create curveMesh to add to the scene
-  curveMesh = new THREE.Line( curve_geometry, curve_material );
+  curveMesh = new THREE.Line(geometry, material);
   curveMesh.matrixAutoUpdate = false;
-  // scene.add(curveMesh);
+  //scene.add(curveMesh);
 
   // Volume 
   const volumeGeometry = new THREE.BoxGeometry( x_scale, y_scale, z_scale);
@@ -571,7 +919,7 @@ function init() {
     'aabb_max': { value: new THREE.Vector3()},
     'dt_scale': { value: params.dt_scale},
     'max_steps': { value: params.max_steps},
-    'spectrum': { value: createDataTexture(NUM_FRAMES, FFT_SIZE / 2) },
+    'spectrum': { value: createDataTexture(x_dim, y_dim) },
     'curve_data': { value: createCurveDataTexture(curve_data) },
     'time': {value: clock.getElapsedTime()},
     'playback_progress': {value: 0.0},
@@ -606,26 +954,47 @@ function init() {
 
   scene.add(volumeMesh);
 
-  //addHelpers(scene);
-  window.addEventListener( 'resize', onWindowResize );
+
+  pointer = new THREE.Vector2();
+
+  window.addEventListener('pointerMove', onPointerMove);
+
+  const planeGeo = new THREE.PlaneGeometry(25, 25);
+  const planeMat = new THREE.MeshBasicMaterial({ visible: false });
+  planeMesh = new THREE.Mesh(planeGeo, planeMat);
+  planeMesh.rotation.x = -0.5 * Math.PI;
+  scene.add(planeMesh);
+  planeMesh.name = 'plane';
+
+  raycaster = new THREE.Raycaster();
+
+  // Add helpers
+  addHelpers(scene);
+  render();
+  document.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('resize', onWindowResize);
+  recordButton.addEventListener('click', onRecordClickHandler);
+  // runButton.addEventListener('click', onRunClickHandler);
+  player.addEventListener('play', startAudioProcessingMediaElt);
+  player.addEventListener('pause', stopAudioProcessingMediaElt);
   
-  render();
-
+  fileInput.addEventListener('change', () => {onLoadFile(fileInput)});
+  buttonGroup.addEventListener("click", (e) => { 
+    const isButton = e.target.nodeName === 'BUTTON';
+    if(!isButton) {
+      return
+    }
+    player.src = audioFiles[e.target.id];
+    player.load();
+  });
 }
 
-
-function animate(){
-  requestAnimationFrame(animate);
-  updateUniforms();
-  //stats.update();
-  render();
-}
 function render() {
   renderer.render(scene, camera);
 }
 
 function onWindowResize() {
-  // Orthographic Camera
+
   // renderer.setSize( window.innerWidth, window.innerHeight );
 
   // const aspect = window.innerWidth / window.innerHeight;
@@ -635,208 +1004,459 @@ function onWindowResize() {
   // camera.left = - frustumHeight * aspect / 2;
   // camera.right = frustumHeight * aspect / 2;
 
-  // Perspective Camera
   // camera.updateProjectionMatrix();
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
 
-  renderer.setSize( window.innerWidth, window.innerHeight );
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
   render();
 
 }
 
-function addHelpers (scene) {
-  const gridHelper = new THREE.GridHelper( 10, 10);
-  scene.add( gridHelper );
+function onPointerMove(event) {
+
+  pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+  pointer.y = - (event.clientY / window.innerHeight) * 2 + 1;
+
+}
+
+function addHelpers(scene) {
+  const gridHelper = new THREE.GridHelper(10, 10);
+  scene.add(gridHelper);
   stats = Stats();
-  document.body.appendChild(stats.dom)
-  const axesHelper = new THREE.AxesHelper( 1 );
-  scene.add( axesHelper );
+  //document.body.appendChild(stats.dom)
+  const axesHelper = new THREE.AxesHelper(3);
+  scene.add(axesHelper);
 }
 
 function updateUniforms(){
   (volumeMesh.material).uniforms['time']['value'] = clock.getElapsedTime();
   (volumeMesh.material).uniforms['curve_data']['value'] =  updateCurveData(curveMesh, NUM_CURVE_POINTS);
-  (volumeMesh.material).uniforms['playback_progress']['value'] = (audioEl.currentTime) / audioEl.duration;
+  (volumeMesh.material).uniforms['playback_progress']['value'] = (player.currentTime) / player.duration;
 }
+function animate() {
+  requestAnimationFrame(animate);
+  updateMeshTexture();
+  updateUniforms();
+  stats.update();
+  render();
+}
+
 // Creates 3D texture with RGB gradient along the XYZ axes
 function create3dDataTexture(width, height, depth) {
-	const d = new Uint8Array( width * height * depth * 4 );
-	let stride = 0;
+  const d = new Uint8Array(width * height * depth * 4);
+  let stride = 0;
 
-	for ( let z = 0; z < depth; z ++ ) {
-		for ( let y = 0; y < height; y ++ ) {
-			for ( let x = 0; x < width; x ++ ) {
- 				d[stride + 0] = (x / width) * 255;
-				d[stride + 1] = (y / height) * 255;
-				d[stride + 2] = (z / depth) * 255; 
+  for (let z = 0; z < depth; z++) {
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        d[stride + 0] = (x / width) * 255;
+        d[stride + 1] = (y / height) * 255;
+        d[stride + 2] = (z / depth) * 255;
         d[stride + 3] = 255;
-				stride += 4;
-			}
-		}
-	}
-	const texture = new THREE.Data3DTexture( d, width, height, depth );
-	texture.format = THREE.RGBAFormat;
-  //texture.type = THREE.FloatType;
-	texture.minFilter = THREE.NearestFilter;
-	texture.magFilter = THREE.NearestFilter;
-	texture.unpackAlignment = 1;
-	texture.needsUpdate = true;
+        stride += 4;
+      }
+    }
+  }
+  const texture = new THREE.Data3DTexture(d, width, height, depth);
+  texture.format = THREE.RGBAFormat;
+  // texture.type = THREE.FloatType;
+  // texture.minFilter = THREE.NearestFilter;
+  // texture.magFilter = THREE.NearestFilter;
+  texture.unpackAlignment = 1;
+  texture.needsUpdate = true;
 
-	return texture;
+  return texture;
 }
 function createDataTexture(width, height) {
 
-	const d = new Float32Array( width * height * 4 );
+  const d = new Uint8Array(width * height * 4);
 
-	let stride = 0;
-  for ( let y = 0; y < height; y ++ ) {
-    for ( let x = 0; x < width; x ++ ) {
-      d[stride + 0] = 0;
+  let stride = 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      d[stride + 0] = 1;
       d[stride + 1] = 0;
       d[stride + 2] = 0;
       d[stride + 3] = 1;
       stride += 4;
     }
-	}
-	const texture = new THREE.DataTexture( d, width, height );
-	texture.format = THREE.RGBAFormat;
-  texture.type = THREE.FloatType;
-	texture.minFilter = THREE.NearestFilter;
-	texture.magFilter = THREE.NearestFilter;
-	texture.unpackAlignment = 1;
-	texture.needsUpdate = true;
+  }
+  const texture = new THREE.DataTexture(d, width, height);
+  texture.format = THREE.RedFormat;
+  // texture.type = THREE.FloatType;
+  // texture.minFilter = THREE.NearestFilter;
+  // texture.magFilter = THREE.NearestFilter;
+  texture.unpackAlignment = 1;
 
-	return texture;
+  return texture;
 }
-function createMMSpectrumDataTexture(data, width, height) {
-	const d = new Float32Array( width * height * 4 );
-	let stride = 0;
-  for ( let y = 0; y < height; y ++ ) {
-    for ( let x = 0; x < width; x ++ ) {
-      d[stride + 0] = data[x][y];
-      d[stride + 1] = 0;
-      d[stride + 2] = 0;
-      d[stride + 3] = 0;
+
+function updateSpectrumData(texture, new_data) {
+  const width = numFrames;
+  const height = melNumBands;
+  const data = texture.image.data;
+  let stride = 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (x < width - 1) {
+        // shift the index by 4 to get R,G,B or A value of the subsequent column
+        data[stride] = data[stride + 4];
+      } else {
+        // set red value of texture
+        data[stride] = new_data[y];
+      }
+      data[stride + 1] = 0;
+      data[stride + 2] = 0;
+      data[stride + 3] = 1;
       stride += 4;
     }
-	}
-  var max = -Infinity; 
-  var min = Infinity; 
-  for(var i = 0; i < d.length; i++ ) if (d[i] > max) max = d[i];
-  for(var i = 0; i < d.length; i++ ) if (d[i] < min) min = d[i];
-
-  // normalize array 
-  stride = 0;
-  while(stride < width * height * 4 ){
-    d[stride] = (d[stride] - min) / (max - min);
-    stride +=4;
   }
-	const texture = new THREE.DataTexture( d, width, height );
-	texture.format = THREE.RGBAFormat;
-  texture.type = THREE.FloatType;
-	texture.minFilter = THREE.NearestFilter;
-	texture.magFilter = THREE.NearestFilter;
-	texture.unpackAlignment = 1;
-	texture.needsUpdate = true;
+  const new_texture = new THREE.DataTexture(data , width, height);
+  new_texture.format = THREE.RGBAFormat;
+  // new_texture.type = THREE.FloatType;
+  // new_texture.minFilter = THREE.NearestFilter;
+  // new_texture.magFilter = THREE.NearestFilter;
+  new_texture.unpackAlignment = 1;
+  new_texture.needsUpdate = true; 
+  setMeshTexture(new_texture);
+  new_texture.dispose();
 
-	return texture;
 }
-
-function createCurveDataTexture(data){
-	const d = new Float32Array( data.numPoints *  4 * 4 );
-	let stride = 0;
+function createCurveDataTexture(data) {
+  const d = new Float32Array(data.numPoints * 4 * 4);
+  let stride = 0;
   const pt_data = [data.positions, data.tangents, data.normals, data.binormals];
-  for ( let j = 0; j < 4; j ++ ) {
-    for ( let k = 0; k < data.numPoints; k ++ ) {
+  for (let j = 0; j < 4; j++) {
+    for (let k = 0; k < data.numPoints; k++) {
       d[stride + 0] = pt_data[j][k].x;
       d[stride + 1] = pt_data[j][k].y;
       d[stride + 2] = pt_data[j][k].z;
       d[stride + 3] = 1.0;
-      stride += 4; 
+      stride += 4;
     }
   }
-  const texture = new THREE.DataTexture( d, data.numPoints, 1 );
+  const texture = new THREE.DataTexture(d, data.numPoints, 1);
   texture.type = THREE.FloatType;
   texture.format = THREE.RGBAFormat;
   texture.minFilter = THREE.NearestFilter;
-	texture.magFilter = THREE.NearestFilter;
-	texture.unpackAlignment = 1;
-	texture.needsUpdate = true;
+  texture.magFilter = THREE.NearestFilter;
+  texture.unpackAlignment = 1;
+  texture.needsUpdate = true;
   return texture
 }
 
-function initCurveData(num_points){
+function initCurveData(num_points) {
 
-  const curve = new THREE.CatmullRomCurve3( [
-    new THREE.Vector3( 0, 0.0, -0.5 ),
-    new THREE.Vector3(0, 0.0,  -0.25 ),
-    new THREE.Vector3( 0, 0.0 , 0),
-    new THREE.Vector3( 0, 0.0, 0.25 ),
-    new THREE.Vector3( 0, 0.0, 0.5 )
-  ] );
+  const curve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, 0.0, -0.5),
+    new THREE.Vector3(0, 0.0, -0.25),
+    new THREE.Vector3(0, 0.0, 0),
+    new THREE.Vector3(0, 0.0, 0.25),
+    new THREE.Vector3(0, 0.0, 0.5)
+  ]);
   const cPoints = curve.getSpacedPoints(num_points);
-  const  cObjects = curve.computeFrenetFrames(num_points, true);
+  const cObjects = curve.computeFrenetFrames(num_points, true);
 
-  curve_data =  {
-    positions : cPoints,
-    tangents :cObjects.tangents,
-    normals : cObjects.normals,
-    binormals : cObjects.binormals,
-    numPoints : num_points
+  curve_data = {
+    positions: cPoints,
+    tangents: cObjects.tangents,
+    normals: cObjects.normals,
+    binormals: cObjects.binormals,
+    numPoints: num_points
   }
   return curve;
 }
 
-function updateCurveData(curve_mesh, num_points){
+function updateCurveData(curve_mesh, num_points) {
 
   const geo_array = curve_mesh.geometry.attributes.position.array;
 
   // rebuild the curve
   const positions = Array(num_points);
   let i3 = 0;
-	for (let i = 0; i < num_points ; i ++ ) {
-    if(i == num_points - 1){
+  for (let i = 0; i < num_points; i++) {
+    if (i == num_points - 1) {
       positions[i] = new THREE.Vector3(
         geo_array[i3 + 0],
         geo_array[i3 + 1] + Math.abs(Math.sin(clock.getElapsedTime())),
         geo_array[i3 + 2]);
     }
-    else{
+    else {
       positions[i] = new THREE.Vector3(
         geo_array[i3 + 0],
         geo_array[i3 + 1],
-        geo_array[i3 + 2]);   
+        geo_array[i3 + 2]);
     }
     i3 += 3;
   }
 
-  const curve = new THREE.CatmullRomCurve3(positions); 
+  const curve = new THREE.CatmullRomCurve3(positions);
   const cPoints = curve.getSpacedPoints(num_points);
-  const  cObjects = curve.computeFrenetFrames(num_points, true);
+  const cObjects = curve.computeFrenetFrames(num_points, true);
 
   // update curve_data interface
-  curve_data =  {
-    positions : cPoints,
-    tangents :cObjects.tangents,
-    normals : cObjects.normals,
-    binormals : cObjects.binormals,
-    numPoints : num_points
+  curve_data = {
+    positions: cPoints,
+    tangents: cObjects.tangents,
+    normals: cObjects.normals,
+    binormals: cObjects.binormals,
+    numPoints: num_points
   }
 
   return createCurveDataTexture(curve_data);
 }
-function setMeshTexture(texture){
+function setMeshTexture(texture) {
   (debugPlaneMesh.material).map = texture;
-  (debugPlaneMesh.material).dispose();
   (volumeMesh.material).uniforms['spectrum']['value'] = texture;
-  (volumeMesh.material).dispose();
+  texture.dispose();
+}
+
+
+function onRecordClickHandler() {
+  recording = recordButton.classList.contains("recording");
+  if (recording) {
+    recordButton.classList.remove("recording");
+    recordButton.innerHTML = "Record";
+    recordButton.classList.remove("bg-emerald-200");
+    recordButton.disabled = false;
+    stopMicRecordStream();
+  } else {
+
+    recordButton.disabled = true;
+    // start microphone stream using getUserMedia and run feature extraction
+    startMicRecordStream();
+  }
+}
+function onRunClickHandler() {
+  running = runButton.classList.contains("running");
+  if (running) {
+    runButton.classList.remove("running");
+    runButton.innerHTML = "Run";
+    runButton.classList.remove("bg-emerald-200");
+    runButton.disabled = false;
+    stopAudioProcessingMediaElt();
+  } else {
+    if(recording){
+      stopMicRecordStream();
+    }
+    runButton.disabled = true;
+    startAudioProcessingMediaElt();
+  }
+}
+
+// record native microphone input and do further audio processing on each audio buffer using the given callback functions
+function startMicRecordStream() {
+  if (navigator.mediaDevices.getUserMedia) {
+    console.log("Initializing audio...");
+    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+      .then(startAudioProcessingStream)
+      .catch(function (message) {
+        throw "Could not access microphone - " + message;
+      });
+  } else {
+    throw "Could not access microphone - getUserMedia not available";
+  }
+}
+
+function startAudioProcessingStream(stream) {
+  gumStream = stream;
+  if (gumStream.active) {
+    if (audioCtx.state == "closed") {
+      audioCtx = new AudioContext();
+    }
+    else if (audioCtx.state == "suspended") {
+      audioCtx.resume();
+    }
+
+    mic = audioCtx.createMediaStreamSource(gumStream);
+    gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+    let codeForProcessorModule = ["https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.umd.js",
+      "https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-extractor.umd.js",
+      "https://raw.githack.com/MTG/essentia.js/master/examples/demos/melspectrogram-rt/melspectrogram-processor.js",
+      "https://unpkg.com/ringbuf.js@0.1.0/dist/index.js"];
+
+    // inject Essentia.js code into AudioWorkletGlobalScope context, then setup audio graph and start animation
+    URLFromFiles(codeForProcessorModule)
+      .then((concatenatedCode) => {
+        audioCtx.audioWorklet.addModule(concatenatedCode)
+          .then(setupAudioGraphStream)
+          .catch(function moduleLoadRejected(msg) {
+            console.log(`There was a problem loading the AudioWorklet module code: \n ${msg}`);
+          });
+      })
+      .catch((msg) => {
+        console.log(`There was a problem retrieving the AudioWorklet module code: \n ${msg}`);
+      })
+    //  // set button to stop
+    recordButton.classList.add("recording");
+    recordButton.innerHTML = "Stop";
+    recordButton.classList.add("bg-emerald-200");
+    recordButton.disabled = false;
+  } else {
+    throw "Mic stream not active";
+  }
+}
+function startAudioProcessingMediaElt() {
+  if (audioCtx.state == "closed") {
+    audioCtx = new AudioContext();
+  }
+  else if (audioCtx.state == "suspended") {
+    audioCtx.resume();
+  }
+
+  source = audioCtx.createMediaElementSource(player);
+  gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  let codeForProcessorModule = ["https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.umd.js",
+    "https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-extractor.umd.js",
+    "https://raw.githack.com/MTG/essentia.js/master/examples/demos/melspectrogram-rt/melspectrogram-processor.js",
+    "https://unpkg.com/ringbuf.js@0.1.0/dist/index.js"];
+
+  // inject Essentia.js code into AudioWorkletGlobalScope context, then setup audio graph and start animation
+  URLFromFiles(codeForProcessorModule)
+    .then((concatenatedCode) => {
+      audioCtx.audioWorklet.addModule(concatenatedCode)
+        .then(setupAudioGraphMediaElt)
+        .catch(function moduleLoadRejected(msg) {
+          console.log(`There was a problem loading the AudioWorklet module code: \n ${msg}`);
+        });
+    })
+    .catch((msg) => {
+      console.log(`There was a problem retrieving the AudioWorklet module code: \n ${msg}`);
+    })
+  //  // set button to stop
+  runButton.classList.add("running");
+  runButton.innerHTML = "Stop";
+  runButton.classList.add("bg-emerald-200");
+  runButton.disabled = false;
+
+}
+function stopMicRecordStream() {
+  // stop mic stream
+  gumStream.getAudioTracks().forEach(function (track) {
+    track.stop();
+    gumStream.removeTrack(track);
+  });
+
+  audioCtx.close().then(function () {
+    // manage button state
+    recordButton.classList.remove("recording");
+    recordButton.innerHTML = 'Record';
+
+    // disconnect nodes
+    mic.disconnect();
+    melspectrogramNode.disconnect();
+    gain.disconnect();
+    mic = undefined;
+    melspectrogramNode = undefined;
+    gain = undefined;
+
+    //console.log("Stopped recording ...");
+  });
+}
+function stopAudioProcessingMediaElt() {
+  player.pause();
+  audioCtx.close().then(function () {
+    // manage button state
+    runButton.classList.remove("running");
+    runButton.innerHTML = 'Run';
+
+    // disconnect nodes
+    source.disconnect();
+    melspectrogramNode.disconnect();
+    source = undefined;
+    melspectrogramNode = undefined;
+    console.log("Stopped running ...");
+  });
+}
+function setupAudioGraphStream() {
+  // increase buffer size in case of glitches
+  let sab = exports.RingBuffer.getStorageForCapacity(melNumBands * 18, Float32Array);
+  let rb = new exports.RingBuffer(sab, Float32Array);
+  audioReader = new exports.AudioReader(rb);
+
+  melspectrogramNode = new AudioWorkletNode(audioCtx, 'melspectrogram-processor', {
+    processorOptions: {
+      bufferSize: bufferSize,
+      hopSize: hopSize,
+      melNumBands: melNumBands,
+      sampleRate: audioCtx.sampleRate,
+    }
+  });
+
+  try {
+    melspectrogramNode.port.postMessage({
+      sab: sab,
+    });
+  } catch (_) {
+    alert("No SharedArrayBuffer transfer support, try another browser.");
+    recordButton.disabled = true;
+    return;
+  }
+  recording = recordButton.classList.contains("recording");
+  mic.connect(melspectrogramNode);
+  melspectrogramNode.connect(gain);
+  gain.connect(audioCtx.destination);
+
+}
+
+function setupAudioGraphMediaElt() {
+  // increase buffer size in case of glitches
+  let sab = exports.RingBuffer.getStorageForCapacity(melNumBands * 18, Float32Array);
+  let rb = new exports.RingBuffer(sab, Float32Array);
+  audioReader = new exports.AudioReader(rb);
+  melspectrogramNode = new AudioWorkletNode(audioCtx, 'melspectrogram-processor', {
+    processorOptions: {
+      bufferSize: 1024,
+      hopSize: 512,
+      melNumBands: melNumBands,
+      sampleRate: audioCtx.sampleRate,
+    }
+  });
+  // The AudioWorklet node causes cracking noises during playback so we 
+  // connect it with a 
+  try {
+    melspectrogramNode.port.postMessage({
+      sab: sab,
+    });
+  } catch (_) {
+    alert("No SharedArrayBuffer transfer support, try another browser.");
+    return;
+  }
+  // connect source to destination for playback
+  source.connect(audioCtx.destination);
+  // connect source to AudioWorklet node for feature extraction
+  source.connect(melspectrogramNode);
+  melspectrogramNode.connect(gain);
+  gain.connect(audioCtx.destination);
+  console.log('setup');
+}
+
+function updateMeshTexture() {
+  /* SAB method */
+
+  let melspectrumBuffer = new Float32Array(melNumBands);
+  if (audioReader !== undefined){
+    if (audioReader.available_read() >= melNumBands) {
+      let toread = audioReader.dequeue(melspectrumBuffer);
+      if (toread !== 0) {
+        // scale spectrum values to 0 - 255
+        scaledMelspectrum = melspectrumBuffer.map(x => Math.round(x * 35.5))
+      }
+      //console.log(specTexture.image.data,scaledMelspectrum);
+    }
+  }
+  updateSpectrumData(specTexture, scaledMelspectrum);
 }
 
 function addGUI() {
   gui.add( params, 'playback_rate').step(0.001).name( 'playback_rate' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['playback_rate']['value'] = 1.0 / value;
-    audioEl.playbackRate = value;
+    player.playbackRate = value;
   } );
   // Distance Function
   const df_folder = gui.addFolder('distance function') ;
@@ -922,14 +1542,7 @@ function addGUI() {
   } ); 
   // Spectrogram
   const spectrogram_folder = gui.addFolder('spectrogram') ;
-  spectrogram_folder.add( params, 'sample_rate',16000, 41000 ).step(1000).name( 'sample_rate' ).onChange( function ( value ) {
-  } );
   spectrogram_folder.add( params, 'mel_spec_bins', 229,512).step(1).name( 'mel_spec_bins' );
-  // spectrogram_folder.add( params, 'spec_hop_length', 8,).step(1).name( 'spec_hop_length' );
-  // spectrogram_folder.add( params, 'fft_size', {'128': 128, '256': 256,
-  //  '512':512, '1024': 1024, '2048':2048} ).name( 'fft_size' );
-  spectrogram_folder.add( params, 'f_min', 30, ).step(10).name( 'f_min' );
-  spectrogram_folder.add( params, 'f_max', 30, 16000).step(10).name( 'f_max' );
   // Raycasting
   const raycasting_folder = gui.addFolder('raycasting') ;
   raycasting_folder.add( params, 'dt_scale', 0.005,).step(0.001).name( 'dt_scale' ).onChange( function ( value ) {
@@ -939,3 +1552,13 @@ function addGUI() {
     (volumeMesh.material).uniforms['max_steps']['value'] = value;    
   } );
 }
+
+
+
+
+
+
+
+
+
+
