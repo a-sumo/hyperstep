@@ -63,6 +63,7 @@ const params = {
   color_mode: 0, color_preset_type: 0, color_space: 0, uni_color: "#9838ff",
   color_1: "#000000", color_2: "#ffffff",
   mel_spec_bins: melNumBands,
+  num_frames: numFrames,
   fft_size: bufferSize,
   dt_scale: 0.1,
   max_steps: 100,
@@ -884,7 +885,7 @@ function init() {
   let planeMat1 = new THREE.MeshBasicMaterial({ map: createDataTexture(x_dim, y_dim), side: THREE.DoubleSide});
   debugPlaneMesh = new THREE.Mesh(planeGeo1, planeMat1);
   debugPlaneMesh .position.set( -2, 0, -1 );
-  scene.add(debugPlaneMesh);
+  // scene.add(debugPlaneMesh);
 
   specTexture = createDataTexture(numFrames, melNumBands);
 
@@ -962,8 +963,8 @@ function init() {
   const planeMat = new THREE.MeshBasicMaterial({ visible: false });
   planeMesh = new THREE.Mesh(planeGeo, planeMat);
   planeMesh.rotation.x = -0.5 * Math.PI;
-  scene.add(planeMesh);
-  planeMesh.name = 'plane';
+  // scene.add(planeMesh);
+  // planeMesh.name = 'plane';
 
   raycaster = new THREE.Raycaster();
 
@@ -1331,7 +1332,7 @@ function stopMicRecordStream() {
     melspectrogramNode = undefined;
     gain = undefined;
 
-    //console.log("Stopped recording ...");
+    console.log("Stopped recording ...");
   });
 }
 function stopAudioProcessingMediaElt() {
@@ -1342,7 +1343,6 @@ function stopAudioProcessingMediaElt() {
     melspectrogramNode.disconnect();
     source = undefined;
     melspectrogramNode = undefined;
-    console.log("Stopped running ...");
   });
 }
 function setupAudioGraphStream() {
@@ -1403,14 +1403,11 @@ function setupAudioGraphMediaElt() {
   source.connect(audioCtx.destination);
   // connect source to AudioWorklet node for feature extraction
   source.connect(melspectrogramNode);
-  melspectrogramNode.connect(gain);
-  gain.connect(audioCtx.destination);
-  console.log('setup');
+  // melspectrogramNode.connect(gain);
+  // gain.connect(audioCtx.destination);
 }
 
 function updateMeshTexture() {
-  /* SAB method */
-
   let melspectrumBuffer = new Float32Array(melNumBands);
   if (audioReader !== undefined){
     if (audioReader.available_read() >= melNumBands) {
@@ -1419,7 +1416,6 @@ function updateMeshTexture() {
         // scale spectrum values to 0 - 255
         scaledMelspectrum = melspectrumBuffer.map(x => Math.round(x * 35.5))
       }
-      //console.log(specTexture.image.data,scaledMelspectrum);
     }
   }
   updateSpectrumData(specTexture, scaledMelspectrum);
@@ -1429,6 +1425,11 @@ function addGUI() {
   gui.add( params, 'playback_rate').step(0.001).name( 'playback_rate' ).onChange( function ( value ) {
     (volumeMesh.material).uniforms['playback_rate']['value'] = 1.0 / value;
     player.playbackRate = value;
+  } );
+  gui.add( params, 'num_frames').step(1).name( 'num_frames' ).onChange( function ( value ) {
+    specTexture = createDataTexture(value, melNumBands);
+    updateMeshTexture();
+    numFrames = value;
   } );
   // Distance Function
   const df_folder = gui.addFolder('distance function') ;
@@ -1514,7 +1515,9 @@ function addGUI() {
   } ); 
   // Spectrogram
   const spectrogram_folder = gui.addFolder('spectrogram') ;
-  spectrogram_folder.add( params, 'mel_spec_bins', 229,512).step(1).name( 'mel_spec_bins' );
+  spectrogram_folder.add( params, 'mel_spec_bins', 10, 96).step(1).name( 'mel_spec_bins' ).onChange( function ( value ) {
+    melNumBands = value ;
+  } ); 
   // Raycasting
   const raycasting_folder = gui.addFolder('raycasting') ;
   raycasting_folder.add( params, 'dt_scale', 0.005,).step(0.001).name( 'dt_scale' ).onChange( function ( value ) {
