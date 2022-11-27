@@ -1,7 +1,7 @@
 
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const pages = ["home", "volume", "vector_field", "automaton"];
+const pages = ["home", "volume", "vector_field", "octree"];
 const path = require('path');
 
  module.exports = {
@@ -25,8 +25,8 @@ const path = require('path');
   },
   devServer: {
     // allowedHosts: 'auto',
+    // these headers are necessary for SharedArrayBuffers to work on localhost
     headers: {
-      // these headers are necessary for SharedArrayBuffers to work on localhost
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
     },
