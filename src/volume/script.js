@@ -4,11 +4,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 import { GUI } from 'dat.gui/build/dat.gui.min.js';
-// import msp from './audio-processors/melspectrogram-processor.js?raw'
 import audioFile1 from "[javascript/auto]!=!!!file-loader!../assets/audio/r2d2_talk.mp3";
 import audioFile2 from "[javascript/auto]!=!!!file-loader!../assets/audio/synth_melody.mp3";
 import audioFile3 from "[javascript/auto]!=!!!file-loader!../assets/audio/theremin_tone.mp3";
-import {loadAudioFromFile} from '@magenta/music/esm/core/audio_utils';
+// import msp from './audio-processors/melspectrogram-processor.js?raw'
 
 const audioFiles = {
   "audio-1" : audioFile1,
@@ -17,9 +16,7 @@ const audioFiles = {
 }
 
 if (WebGL.isWebGL2Available() === false) {
-
   document.body.appendChild(WebGL.getWebGL2ErrorMessage());
-
 }
 
 let camera,
