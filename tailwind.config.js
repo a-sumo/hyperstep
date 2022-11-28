@@ -8,11 +8,7 @@ module.exports = {
     extend: {},
   },
   variants: {
-    extend: {
-      backgroundImage: {
-        'volume': "url('src/assets/images/vol_synth.png')",
-      },
+    extend: {},
     },
-  },
   plugins: [],
 }

@@ -2,7 +2,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const path = require('path');
 
-const pages = ["home", "volume", "vector_field", "octree"];
+const pages = ["home", "volume", "vector_field", "tests"];
 
 module.exports = (env, argv) => {
   return {
@@ -20,7 +20,7 @@ module.exports = (env, argv) => {
     {
       filename: 'bundle.[contenthash].js',
       path: path.resolve(__dirname, '../dist'),
-      publicPath: argv.mode === 'production' ? '/hyperstep' : '/'
+      publicPath: argv.mode === 'production' ? '/hyperstep/' : '/'
     },
     optimization: {
     splitChunks: {
@@ -113,7 +113,7 @@ module.exports = (env, argv) => {
           },
           // Audio
           {
-            test: /\.(ogg|mp3|wav|mpe?g)$/,
+            test: /\.(ogg|mp3|wav|mpe?g)$/i,
             type: 'asset/resource',
           },
           // Fonts
