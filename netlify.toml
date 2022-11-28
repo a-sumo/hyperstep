@@ -3,3 +3,7 @@ for = "/*"
   [headers.values]
     Cross-Origin-Opener-Policy = "same-origin"
     Cross-Origin-Embedder-Policy = "require-corp"
+[build]
+base = /hyperstep
+// build command for myproject1 directory 
+command = "webpack" 

@@ -682,10 +682,10 @@ video {
   transition-duration: 150ms;
 }
 
-/* * {
+* {
   box-sizing: border-box;
   scroll-behavior: smooth;
-} */
+}
 
 /* [disabled] {
   opacity: 0.5;
