@@ -4,9 +4,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module';
 import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 import { GUI } from 'dat.gui/build/dat.gui.min.js';
-import audioFile1 from "[javascript/auto]!=!!!file-loader!../assets/audio/r2d2_talk.mp3";
-import audioFile2 from "[javascript/auto]!=!!!file-loader!../assets/audio/synth_melody.mp3";
-import audioFile3 from "[javascript/auto]!=!!!file-loader!../assets/audio/theremin_tone.mp3";
+import audioFile1 from "../assets/audio/r2d2_talk.mp3";
+import audioFile2 from "../assets/audio/synth_melody.mp3";
+import audioFile3 from "../assets/audio/theremin_tone.mp3";
 
 
 const audioFiles = {

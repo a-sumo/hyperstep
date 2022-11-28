@@ -15,8 +15,9 @@ const path = require('path');
     return config;
   }, {}),
   output: {
-     filename: '[name].bundle.js',
-     path: path.resolve(__dirname, 'dist'),
+    filename: '[name].bundle.js',
+    path: path.resolve(__dirname, 'dist'),
+    publicPath: "/assets/"
    },
   optimization: {
     splitChunks: {
@@ -56,6 +57,10 @@ const path = require('path');
   ),
    module: {
     rules: [
+      {
+        test: /\.(glb|gltf|obj|fbx|stl)$/,
+        type: 'asset/resource',
+      },
       {
         test: /\.(jpg|png|svg|gif)$/,
         type: 'asset/resource',
