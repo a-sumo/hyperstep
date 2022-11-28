@@ -1,7 +1,0 @@
-/**
- * lil-gui
- * https://lil-gui.georgealways.com
- * @version 0.16.0
- * @author George Michael Brower
- * @license MIT
- */
