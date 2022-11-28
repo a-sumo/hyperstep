@@ -2,7 +2,6 @@ import '../style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module';
-import WebGL from 'three/examples/jsm/capabilities/WebGL.js';
 import { GUI } from 'dat.gui/build/dat.gui.min.js';
 import audioFile1 from "../assets/audio/r2d2_talk.mp3";
 import audioFile2 from "../assets/audio/synth_melody.mp3";
@@ -13,10 +12,6 @@ const audioFiles = {
   "audio-1" : audioFile1,
   "audio-2" : audioFile2,
   "audio-3" : audioFile3,
-}
-
-if (WebGL.isWebGL2Available() === false) {
-  document.body.appendChild(WebGL.getWebGL2ErrorMessage());
 }
 
 let camera,
