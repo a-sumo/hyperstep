@@ -55,21 +55,32 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
  
 ## [Spatial symbolic system](https://a-sumo.github.io/hyperstep/)
 
+
+<img src= "https://user-images.githubusercontent.com/75185852/199851952-30525228-27ca-4f32-9f7f-a04768d41703.mp4" width="500"/>
+<img src= "https://user-images.githubusercontent.com/75185852/199347450-c1074afa-6426-4ecd-a25b-dc19c0291554.mp4" width="500"/>
+
 <details>
   <summary>Project Description</summary>
   
   The goal of this project is to turn sounds into spatial symbols that can be manipulated and composed in intuitive ways. 
   
   Feature list:
+  
   - [x] Audio file processing
   - [x] Microphone input processing
   - [ ] Bounding volume hierarchies for multiple symbols
   - [ ] Definition of a interaction rules
   - [ ] Source separation
   
-  Install [Node.js and npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
-  Run locally with:
+  Quickstart:
+ 
+  - Clone the GitHub repository.
+  - If needed, install [Node.js and npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm).
+  - Run locally with:
   ```npm run dev```
-  The project uses [SharedArrayBuffers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) which require a secure context. When prompted, open the project on localhost. 
+  
+  The project uses [SharedArrayBuffers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) which require a secure context. When prompted, open the project on localhost. The deployed GiHub page currently works on Chrome and Firefox.  
+  
+  
 </details>
 
