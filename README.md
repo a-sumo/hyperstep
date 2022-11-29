@@ -62,6 +62,7 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
 <details>
   <summary>Project Description</summary>
   
+  
   The goal of this project is to turn sounds into spatial symbols that can be manipulated and composed in intuitive ways. 
   
   Feature list:
