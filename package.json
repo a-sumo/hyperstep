@@ -31,7 +31,7 @@
     "tone": "^14.7.77",
     "webpack": "^5.75.0",
     "webpack-cli": "^4.3.1",
-    "webpack-dev-server": "^3.11.2",
+    "webpack-dev-server": "^4.11.1",
     "webpack-merge": "^5.7.3"
   },
   "devDependencies": {

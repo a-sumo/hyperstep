@@ -29,7 +29,11 @@ const path = require('path');
       'Cross-Origin-Embedder-Policy': 'require-corp',
       'Cross-Origin-Opener-Policy': 'same-origin',
     },
+    client: {
+      logging: 'none',
+    },
   },
+  
   plugins: [
   new HtmlWebpackPlugin(),
   new MiniCssExtractPlugin()].concat(
