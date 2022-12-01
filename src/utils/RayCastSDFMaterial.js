@@ -94,7 +94,7 @@ export class RayCastSDFMaterial extends ShaderMaterial {
                             // get the distance value
 							float distance = texture2D( sdfTex, uv ).r;
                             vec2 uv2 = vec2(distance, 0.03 / max(pow(distance,2.0), EPSILON));
-                            float dataSample = texture(dataTex, vec2(0.0,0.0)).r;
+                            float dataSample = texture(dataTex, uv2).r;
                             // float dataSample = 0.1;
                             vec4 baseColor = vec4(pow(dataSample,10.0) * 1./distance,
                             pow(dataSample, 2.0),
@@ -109,7 +109,7 @@ export class RayCastSDFMaterial extends ShaderMaterial {
                               break;
                             }
 							// step the ray
-							point.xyz += rayDirection * 0.01;
+							point.xyz += rayDirection * abs(distance);
 						}
 						// // find the surface normal
 						// if ( intersectsSurface ) {
