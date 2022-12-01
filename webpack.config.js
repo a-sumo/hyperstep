@@ -1,7 +1,7 @@
 
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const pages = ["home", "volume", "vector_field", "tests"];
+const pages = ["home", "volume", "vector_field", "playground"];
 const path = require('path');
 
  module.exports = {

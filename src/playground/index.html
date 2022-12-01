@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>three-mesh-bvh - BVH Inspector</title>
+    <title>three-mesh-bvh - Fast SDF Generation</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
     <style type="text/css">
@@ -9,6 +9,8 @@
             padding: 0;
             margin: 0;
             overflow: hidden;
+			font-family: monospace;
+			background-color: #440727;
         }
 
         canvas {
@@ -16,44 +18,35 @@
             height: 100%;
         }
 
-        #info {
-            position: absolute;
-            top: 0;
-            width: 100%;
-            color: white;
-            font-family: monospace;
-            text-align: center;
-            padding: 5px 0;
-            pointer-events: none;
-        }
+		#output {
+			color: #ffffff;
+			position: absolute;
+			left: 10px;
+			bottom: 10px;
+			white-space: pre;
+		}
 
-        a {
-            color: #eee;
-        }
+		#info {
+			position: absolute;
+			top: 0;
+			width: 100%;
+			color: white;
+			font-family: monospace;
+			text-align: center;
+			padding: 5px 0;
+		}
 
-        #container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            padding: 5px;
-            color: white;
-            opacity: 0.5;
-            font-family: monospace;
-            pointer-events: none;
-        }
-
-        #output, #benchmark {
-            white-space: pre;
-        }
+		a {
+			color: white;
+		}
     </style>
 </head>
 <body>
-    <div id="info">
-		BVH Tests
+	<div id="info">
+		3D Texture <a href="https://en.wikipedia.org/wiki/Signed_distance_function">Signed Distance Field</a> generation on the gpu and raycasting.
+		<br/>
+
 	</div>
-	<div id="container">
-		<div id="output"></div>
-		<div id="benchmark"></div>
-	</div>
+	<div id="output"></div>
 </body>
 </html>
