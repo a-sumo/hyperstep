@@ -1,33 +1,46 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
-import Stats from 'three/examples/jsm/libs/stats.module';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import {
-	MeshBVH, MeshBVHUniformStruct, FloatVertexAttributeTexture,
-	shaderStructs, shaderIntersectFunction, SAH,
-} from 'three-mesh-bvh';
+import Stats from 'three/examples/jsm/libs/stats.module';
+import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
+import { StaticGeometryGenerator } from 'three-mesh-bvh/src/utils/StaticGeometryGenerator.js';
+import { GenerateSDFMaterial } from '../utils/GenerateSDFMaterial.js';
+import { RayMarchSDFMaterial } from '../utils/RayMarchSDFMaterial.js';
+import { RayCastSDFMaterial } from '../utils/RayCastSDFMaterial.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 const params = {
-	enableRaytracing: true,
-	animate: true,
-	resolutionScale: 1.0 / window.devicePixelRatio,
-	smoothNormals: true,
+
+	gpuGeneration: true,
+	resolution: 75,
+	margin: 0.2,
+	regenerate: () => updateSDF(),
+
+	mode: 'raycasting',
+	surface: 0.1,
+
 };
 
-let renderer, camera, scene, gui, stats;
-let rtQuad, mesh, clock;
+let renderer, camera, scene, gui, stats, boxHelper;
+let outputContainer, bvh, geometry, sdfTex, testTex, mesh;
+let generateSdfPass, raymarchPass, raycastPass;
+let bvhGenerationWorker;
+const inverseBoundsMatrix = new THREE.Matrix4();
 
 init();
 render();
 
 function init() {
 
+	outputContainer = document.getElementById( 'output' );
+
 	// renderer setup
-	renderer = new THREE.WebGLRenderer( { antialias: false } );
+	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
-	renderer.setClearColor( 0x09141a );
 	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.setClearColor( 0, 0 );
 	renderer.outputEncoding = THREE.sRGBEncoding;
 	document.body.appendChild( renderer.domElement );
 
@@ -37,128 +50,256 @@ function init() {
 	const light = new THREE.DirectionalLight( 0xffffff, 1 );
 	light.position.set( 1, 1, 1 );
 	scene.add( light );
-	scene.add( new THREE.AmbientLight( 0xb0bec5, 0.5 ) );
+	scene.add( new THREE.AmbientLight( 0xffffff, 0.2 ) );
 
 	// camera setup
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 50 );
-	camera.position.set( 0, 0, 4 );
+	camera.position.set( 1, 1, 2 );
 	camera.far = 100;
 	camera.updateProjectionMatrix();
+
+	boxHelper = new THREE.Box3Helper( new THREE.Box3() );
+	scene.add( boxHelper );
+
+	new OrbitControls( camera, renderer.domElement );
 
 	// stats setup
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
 
-	const knotGeometry = new THREE.TorusKnotGeometry( 1, 0.3, 300, 50 );
-	const bvh = new MeshBVH( knotGeometry, { maxLeafTris: 1, strategy: SAH } );
+	// sdf pass to generate the 3d texture
+	generateSdfPass = new FullScreenQuad( new GenerateSDFMaterial() );
 
-	mesh = new THREE.Mesh( knotGeometry, new THREE.MeshStandardMaterial() );
-	scene.add( mesh );
 
-	clock = new THREE.Clock();
+	// screen pass to render the sdf ray marching
+	raymarchPass = new FullScreenQuad( new RayMarchSDFMaterial() );
 
-	const rtMaterial = new THREE.ShaderMaterial( {
+	// screen pass to render the sdf ray casting
+	raycastPass = new FullScreenQuad( new RayCastSDFMaterial() );
 
-		defines: {
+	// load model and generate bvh
+	bvhGenerationWorker = new GenerateMeshBVHWorker();
 
-			SMOOTH_NORMALS: 1,
+	new GLTFLoader()
+		.setMeshoptDecoder( MeshoptDecoder )
+		.loadAsync( 'https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb' )
+		.then( gltf => {
 
-		},
+			gltf.scene.updateMatrixWorld( true );
 
-		uniforms: {
-			bvh: { value: new MeshBVHUniformStruct() },
-			normalAttribute: { value: new FloatVertexAttributeTexture() },
-			cameraWorldMatrix: { value: new THREE.Matrix4() },
-			invProjectionMatrix: { value: new THREE.Matrix4() },
-			invModelMatrix: { value: new THREE.Matrix4() },
-		},
+			const staticGen = new StaticGeometryGenerator( gltf.scene );
+			staticGen.attributes = [ 'position', 'normal' ];
+			staticGen.useGroups = false;
 
-		vertexShader: /* glsl */`
-			varying vec2 vUv;
-			void main() {
-				vec4 mvPosition = vec4( position, 1.0 );
-				mvPosition = modelViewMatrix * mvPosition;
-				gl_Position = projectionMatrix * mvPosition;
-				vUv = uv;
-			}
-		`,
+			geometry = staticGen.generate().center();
 
-		fragmentShader: /* glsl */`
-			precision highp isampler2D;
-			precision highp usampler2D;
-			${ shaderStructs }
-			${ shaderIntersectFunction }
-			uniform mat4 cameraWorldMatrix;
-			uniform mat4 invProjectionMatrix;
-			uniform mat4 invModelMatrix;
-			uniform sampler2D normalAttribute;
-			uniform BVH bvh;
-			varying vec2 vUv;
-			void main() {
-				// get [-1, 1] normalized device coordinates
-				vec2 ndc = 2.0 * vUv - vec2( 1.0 );
-				vec3 rayOrigin, rayDirection;
-				ndcToCameraRay(
-					ndc, invModelMatrix * cameraWorldMatrix, invProjectionMatrix,
-					rayOrigin, rayDirection
-				);
-				// hit results
-				uvec4 faceIndices = uvec4( 0u );
-				vec3 faceNormal = vec3( 0.0, 0.0, 1.0 );
-				vec3 barycoord = vec3( 0.0 );
-				float side = 1.0;
-				float dist = 0.0;
-				// get intersection
-				bool didHit = bvhIntersectFirstHit( bvh, rayOrigin, rayDirection, faceIndices, faceNormal, barycoord, side, dist );
-				#if SMOOTH_NORMALS
-					vec3 normal = textureSampleBarycoord(
-						normalAttribute,
-						barycoord,
-						faceIndices.xyz
-					).xyz;
-				#else
-					vec3 normal = face.normal;
-				#endif
-				// set the color
-				gl_FragColor = ! didHit ? vec4( 0.0366, 0.0813, 0.1057, 1.0 ) : vec4( normal, 1.0 );
-			}
-		`
+			return bvhGenerationWorker.generate( geometry, { maxLeafTris: 1 } );
 
-	} );
+		} )
+		.then( result => {
 
-	rtQuad = new FullScreenQuad( rtMaterial );
-	rtMaterial.uniforms.bvh.value.updateFrom( bvh );
-	rtMaterial.uniforms.normalAttribute.value.updateFrom( knotGeometry.attributes.normal );
+			bvh = result;
 
-	new OrbitControls( camera, renderer.domElement );
+			mesh = new THREE.Mesh( geometry, new THREE.MeshStandardMaterial() );
+			scene.add( mesh );
+
+			updateSDF();
+
+		} );
+
+	rebuildGUI();
+
+	window.addEventListener( 'resize', function () {
+
+		camera.aspect = window.innerWidth / window.innerHeight;
+		camera.updateProjectionMatrix();
+
+		renderer.setSize( window.innerWidth, window.innerHeight );
+
+	}, false );
+
+}
+function createDataTexture(width, height) {
+
+	const d = new Float32Array(width * height * 4);
+  
+	let stride = 0;
+	for (let y = 0; y < height; y++) {
+	  for (let x = 0; x < width; x++) {
+		d[stride + 0] = 1;
+		d[stride + 1] = 1;
+		d[stride + 2] = 1;
+		d[stride + 3] = 1;
+		stride += 4;
+	  }
+	}
+	const texture = new THREE.DataTexture(d, width, height);
+	texture.format = THREE.RedFormat;
+	texture.type = THREE.FloatType;
+	texture.minFilter = THREE.LinearFilter;
+	texture.magFilter = THREE.LinearFilter;
+	texture.needsUpdate = true;
+  
+	return texture;
+  }
+// build the gui with parameters based on the selected display mode
+function rebuildGUI() {
+
+	if ( gui ) {
+
+		gui.destroy();
+
+	}
 
 	gui = new GUI();
-	gui.add( params, 'enableRaytracing' );
-	gui.add( params, 'animate' );
-	gui.add( params, 'smoothNormals' ).onChange( v => {
 
-		rtQuad.material.defines.SMOOTH_NORMALS = Number( v );
-		rtQuad.material.needsUpdate = true;
+	const generationFolder = gui.addFolder( 'generation' );
+	generationFolder.add( params, 'gpuGeneration' );
+	generationFolder.add( params, 'resolution', 10, 200, 1 );
+	generationFolder.add( params, 'margin', 0, 1 );
+	generationFolder.add( params, 'regenerate' );
+
+	const displayFolder = gui.addFolder( 'display' );
+	displayFolder.add( params, 'mode', [ 'geometry', 'raymarching', 'raycasting'] ).onChange( () => {
+
+		rebuildGUI();
 
 	} );
-	gui.add( params, 'resolutionScale', 0.1, 1, 0.01 ).onChange( resize );
-	gui.open();
+	if ( params.mode === 'raymarching' ) {
 
-	window.addEventListener( 'resize', resize, false );
-	resize();
+		displayFolder.add( params, 'surface', - 0.2, 0.5 );
+
+	}
 
 }
 
-function resize() {
+// update the sdf texture based on the selected parameters
+function updateSDF() {
 
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
+	const dim = params.resolution;
+	const matrix = new THREE.Matrix4();
+	const center = new THREE.Vector3();
+	const quat = new THREE.Quaternion();
+	const scale = new THREE.Vector3();
 
-	const w = window.innerWidth;
-	const h = window.innerHeight;
-	const dpr = window.devicePixelRatio * params.resolutionScale;
-	renderer.setSize( w, h );
-	renderer.setPixelRatio( dpr );
+	// compute the bounding box of the geometry including the margin which is used to
+	// define the range of the SDF
+	geometry.boundingBox.getCenter( center );
+	scale.subVectors( geometry.boundingBox.max, geometry.boundingBox.min );
+	scale.x += 2 * params.margin;
+	scale.y += 2 * params.margin;
+	scale.z += 2 * params.margin;
+	matrix.compose( center, quat, scale );
+	inverseBoundsMatrix.copy( matrix ).invert();
+
+	// update the box helper
+	boxHelper.box.copy( geometry.boundingBox );
+	boxHelper.box.min.x -= params.margin;
+	boxHelper.box.min.y -= params.margin;
+	boxHelper.box.min.z -= params.margin;
+	boxHelper.box.max.x += params.margin;
+	boxHelper.box.max.y += params.margin;
+	boxHelper.box.max.z += params.margin;
+
+	// dispose of the existing sdf
+	if ( sdfTex ) {
+
+		sdfTex.dispose();
+
+	}
+
+	const pxWidth = 1 / dim;
+	const halfWidth = 0.5 * pxWidth;
+
+	const startTime = window.performance.now();
+	if ( params.gpuGeneration ) {
+
+		// create a new 3d render target texture
+		sdfTex = new THREE.WebGL3DRenderTarget( dim, dim, dim );
+		sdfTex.texture.format = THREE.RedFormat;
+		sdfTex.texture.type = THREE.FloatType;
+		sdfTex.texture.minFilter = THREE.LinearFilter;
+		sdfTex.texture.magFilter = THREE.LinearFilter;
+
+		// prep the sdf generation material pass
+		generateSdfPass.material.uniforms.bvh.value.updateFrom( bvh );
+		generateSdfPass.material.uniforms.matrix.value.copy( matrix );
+
+		// render into each layer
+		for ( let i = 0; i < dim; i ++ ) {
+
+			generateSdfPass.material.uniforms.zValue.value = i * pxWidth + halfWidth;
+
+			renderer.setRenderTarget( sdfTex, i );
+			generateSdfPass.render( renderer );
+
+		}
+
+		// initiate read back to get a rough estimate of time taken to generate the sdf
+		renderer.readRenderTargetPixels( sdfTex, 0, 0, 1, 1, new Float32Array( 4 ) );
+		renderer.setRenderTarget( null );
+
+	} else {
+
+		// create a new 3d data texture
+		sdfTex = new THREE.Data3DTexture( new Float32Array( dim ** 3 ), dim, dim, dim );
+		sdfTex.format = THREE.RedFormat;
+		sdfTex.type = THREE.FloatType;
+		sdfTex.minFilter = THREE.LinearFilter;
+		sdfTex.magFilter = THREE.LinearFilter;
+		sdfTex.needsUpdate = true;
+
+		const posAttr = geometry.attributes.position;
+		const indexAttr = geometry.index;
+		const point = new THREE.Vector3();
+		const normal = new THREE.Vector3();
+		const delta = new THREE.Vector3();
+		const tri = new THREE.Triangle();
+		const target = {};
+
+		// iterate over all pixels and check distance
+		for ( let x = 0; x < dim; x ++ ) {
+
+			for ( let y = 0; y < dim; y ++ ) {
+
+				for ( let z = 0; z < dim; z ++ ) {
+
+					// adjust by half width of the pixel so we sample the pixel center
+					// and offset by half the box size.
+					point.set(
+						halfWidth + x * pxWidth - 0.5,
+						halfWidth + y * pxWidth - 0.5,
+						halfWidth + z * pxWidth - 0.5,
+					).applyMatrix4( matrix );
+
+					const index = x + y * dim + z * dim * dim;
+					const dist = bvh.closestPointToPoint( point, target ).distance;
+
+					// get the face normal to determine if the distance should be positive or negative
+					const faceIndex = target.faceIndex;
+					const i0 = indexAttr.getX( faceIndex * 3 + 0 );
+					const i1 = indexAttr.getX( faceIndex * 3 + 1 );
+					const i2 = indexAttr.getX( faceIndex * 3 + 2 );
+					tri.setFromAttributeAndIndices( posAttr, i0, i1, i2 );
+					tri.getNormal( normal );
+					delta.subVectors( target.point, point );
+
+					// set the distance in the texture data
+					sdfTex.image.data[ index ] = normal.dot( delta ) > 0.0 ? - dist : dist;
+
+				}
+
+			}
+
+		}
+
+	}
+
+	// update the timing display
+	const delta = window.performance.now() - startTime;
+	outputContainer.innerText = `${ delta.toFixed( 2 ) }ms`;
+
+	rebuildGUI();
 
 }
 
@@ -167,30 +308,69 @@ function render() {
 	stats.update();
 	requestAnimationFrame( render );
 
-	const delta = clock.getDelta();
-	if ( params.animate ) {
+	if ( ! ( sdfTex ) ) {
 
-		mesh.rotation.y += delta;
+		// render nothing
+		return;
 
-	}
+	} else if ( params.mode === 'geometry' ) {
 
-	if ( params.enableRaytracing ) {
+		// render the rasterized geometry
+		renderer.render( scene, camera );
 
+	} else if ( params.mode === 'raymarching' ) {
+
+		// render the ray marched texture
 		camera.updateMatrixWorld();
 		mesh.updateMatrixWorld();
 
-		// update material
-		const uniforms = rtQuad.material.uniforms;
-		uniforms.cameraWorldMatrix.value.copy( camera.matrixWorld );
-		uniforms.invProjectionMatrix.value.copy( camera.projectionMatrixInverse );
-		uniforms.invModelMatrix.value.copy( mesh.matrixWorld ).invert();
+		let tex;
+		if ( sdfTex.isData3DTexture ) {
 
-		// render float target
-		rtQuad.render( renderer );
+			tex = sdfTex;
 
-	} else {
+		} else {
 
-		renderer.render( scene, camera );
+			tex = sdfTex.texture;
+
+		}
+
+		const { width, depth, height } = tex.image;
+		raymarchPass.material.uniforms.sdfTex.value = tex;
+		raymarchPass.material.uniforms.normalStep.value.set( 1 / width, 1 / height, 1 / depth );
+		raymarchPass.material.uniforms.surface.value = params.surface;
+		raymarchPass.material.uniforms.projectionInverse.value.copy( camera.projectionMatrixInverse );
+		raymarchPass.material.uniforms.sdfTransformInverse.value.copy( mesh.matrixWorld ).invert().premultiply( inverseBoundsMatrix ).multiply( camera.matrixWorld );
+		raymarchPass.render( renderer );
+
+	} else if ( params.mode === 'raycasting' ) {
+
+		// render the ray marched texture
+		camera.updateMatrixWorld();
+		mesh.updateMatrixWorld();
+
+		let tex;
+		if ( sdfTex.isData3DTexture ) {
+
+			tex = sdfTex;
+
+		} else { 
+
+			tex = sdfTex.texture;
+
+		}
+		const testTex = createDataTexture(100, 100) ;
+		if(performance.now() < 1000){
+			console.log(testTex);
+		}
+		const { width, depth, height } = tex.image;
+		raycastPass.material.uniforms.sdfTex.value = tex.texture;
+		raycastPass.material.uniforms.dataTex.value = testTex;
+		raycastPass.material.uniforms.normalStep.value.set( 1 / width, 1 / height, 1 / depth );
+		raycastPass.material.uniforms.surface.value = params.surface;
+		raycastPass.material.uniforms.projectionInverse.value.copy( camera.projectionMatrixInverse );
+		raycastPass.material.uniforms.sdfTransformInverse.value.copy( mesh.matrixWorld ).invert().premultiply( inverseBoundsMatrix ).multiply( camera.matrixWorld );
+		raycastPass.render( renderer );
 
 	}
 
