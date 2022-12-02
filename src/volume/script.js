@@ -329,7 +329,7 @@ void main(void) {
 
     // tube
     float dist_tube = length(p_dist_r_t.xy);
-    float u_coords_tube = (p_dist_r_t.z - 0.5) / playback_rate + playback_progress;
+    float u_coords_tube = (p_dist_r_t.z - 0.5) / playback_rate + 1.;
 
     // plane
     // normal vector 
@@ -656,7 +656,7 @@ function addHelpers(scene) {
 function updateUniforms(){
   (volumeMesh.material).uniforms['time']['value'] = clock.getElapsedTime();
   (volumeMesh.material).uniforms['curve_data']['value'] =  updateCurveData(curveMesh, NUM_CURVE_POINTS);
-  //(volumeMesh.material).uniforms['playback_progress']['value'] = (player.currentTime) / player.duration;
+  (volumeMesh.material).uniforms['playback_progress']['value'] = (player.currentTime) / player.duration;
 }
 function animate() {
   requestAnimationFrame(animate);
@@ -971,7 +971,7 @@ function stopAudioProcessingMediaElt() {
 }
 function setupAudioGraphStream() {
   // increase buffer size in case of glitches
-  let sab = exports.RingBuffer.getStorageForCapacity(melNumBands * 18, Float32Array);
+  let sab = exports.RingBuffer.getStorageForCapacity(melNumBands * 42, Float32Array);
   let rb = new exports.RingBuffer(sab, Float32Array);
   audioReader = new exports.AudioReader(rb);
 

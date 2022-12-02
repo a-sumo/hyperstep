@@ -93,9 +93,9 @@ export class RayCastSDFMaterial extends ShaderMaterial {
 							// 	break;
 							// }
                             // get the distance value
-							float distance = abs(texture2D( sdfTex, uv - 0.5).r);
-							distance = distance * 0.1; 
-							distance = clamp(length(uv-vec3(0.5)), 0.0, 1.0);
+							float distance = abs(texture2D( sdfTex, uv ).r);
+							//distance = distance * 0.1; 
+							//distance = clamp(length(uv-vec3(0.5)), 0.0, 1.0);
 							// sample data texture along distance value
                             vec2 uv2 = vec2(0., distance);
                             float dataSample = texture(dataTex, uv2).r;
@@ -137,7 +137,7 @@ export class RayCastSDFMaterial extends ShaderMaterial {
 						// 	gl_FragColor.a = 1.0;
 						// }
 					}
-					#include <encodings_fragment>
+					//#include <encodings_fragment>
 				}
 			`
 

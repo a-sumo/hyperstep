@@ -427,7 +427,6 @@ function render() {
 
 		const { width, depth, height } = tex.image;
 		raymarchPass.material.uniforms.sdfTex.value = tex;
-		console.log
 		raymarchPass.material.uniforms.normalStep.value.set(1 / width, 1 / height, 1 / depth);
 		raymarchPass.material.uniforms.surface.value = params.surface;
 		raymarchPass.material.uniforms.projectionInverse.value.copy(camera.projectionMatrixInverse);
@@ -435,6 +434,7 @@ function render() {
 		raymarchPass.render(renderer);
 
 	} else if (params.mode === 'raycasting') {
+		
 		let melspectrumBuffer = new Float32Array(melNumBands);
 		if (audioReader !== undefined) {
 			if (audioReader.available_read() >= melNumBands) {
@@ -488,7 +488,7 @@ function render() {
 		}
 
 		const { width, depth, height } = tex.image;
-		raycastPass.material.uniforms.sdfTex.value = tex.texture;
+		raycastPass.material.uniforms.sdfTex.value = tex;
 		raycastPass.material.uniforms.dataTex.value = specTex;
 		raycastPass.material.uniforms.normalStep.value.set(1 / width, 1 / height, 1 / depth);
 		raycastPass.material.uniforms.surface.value = params.surface;
@@ -631,7 +631,7 @@ function stopAudioProcessingMediaElt() {
 
 function setupAudioGraphStream() {
 	// increase buffer size to reduce audio artifacts
-	let sab = exports.RingBuffer.getStorageForCapacity(melNumBands * 18, Float32Array);
+	let sab = exports.RingBuffer.getStorageForCapacity(melNumBands * 42, Float32Array);
 	let rb = new exports.RingBuffer(sab, Float32Array);
 	audioReader = new exports.AudioReader(rb);
 
