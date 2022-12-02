@@ -38,7 +38,7 @@ let hopSize = 512;
 let melNumBands = 96;
 let numFrames = 1;
 let exports = {};
-exports = require('./ringbuf.js/index.js')
+exports = require('../utils/ringbuf.js/index.js')
 let scaledMelspectrum = [];
 let recording,running
 
@@ -275,27 +275,9 @@ vec3 rotate(vec3 v, vec3 axis, float angle) {
   mat4 m = rotationMatrix(axis, angle);
   return (m * vec4(v, 1.0)).xyz;
 }
-float distCurve(vec3 p){
-  // Experimental: compute distance from 3d curve
-  float min_d = 10.0;
-  float du = 0.2;
-  float u = 0.0;
-  while(u < 1.0 ){
-    vec2 v_pos = vec2(u, 0.0);
-    // point normals are stored in the 3rd row of the texture
-    // whose UV.v coordinate is 0.75
-    vec2 v_norm = vec2(u, 0.75);
-    vec3 dir_vec = p - texture(curve_data, v_pos).rgb ;
-
-    min_d = min(min_d, length(dir_vec));
-    u += du;
-  }
-  return min_dist;
-}
 
 void main(void) {
 	vec3 ray_dir = normalize(vray_dir);
-  vec4 color = vec4(0.0);
 	vec2 t_hit = intersect_box(aabb_min, aabb_max, transformed_eye, ray_dir);
 
 	if (t_hit.x > t_hit.y) {
@@ -362,10 +344,6 @@ void main(void) {
     float dist_box = sdRoundBox(p_dist_r_t, df_scale * global_scale * 1.3, 0.0);
     float u_coords_box = u_coords_sphere;
 
-    // TODO: curve
-    float dist_curve = distCurve(p_dist);
-    float u_coords_curve = u_coords_tube;
-
     // Interpolate between distance functions
     if(df_type ==  0){
       u_coords =  mix(u_coords_sphere, u_coords_tube, df_sphere_tube);
@@ -391,7 +369,7 @@ void main(void) {
       u_coords =  mix(u_coords_plane, u_coords_box, df_plane_box);
       dist =  mix(dist_plane, dist_box, df_plane_box);   
     }
-
+  
     v_coords = length(df_scale) * global_scale / max(pow(dist,2.0), Epsilon);
 
     spec_val = texture(spectrum, vec2(u_coords, v_coords));
@@ -465,9 +443,9 @@ void main(void) {
     val_color.w = 1.0 - pow(1.0 - val_color.w, dt_scale);
 
     // Alpha-blending
-    color.xyz += (1.0 - color.w) * val_color.w * val_color.xyz;
-    color.w += (1.0 - color.w) * val_color.w;
-    if (color.w > 0.99) {
+    gl_FragColor.rgb += (1.0 - gl_FragColor.a) * val_color.w * val_color.xyz;
+    gl_FragColor.a += (1.0 - gl_FragColor.a) * val_color.w;
+    if (gl_FragColor.a > 0.99) {
       break;
     }
     if (val_color.w < 0.0) {
@@ -678,7 +656,7 @@ function addHelpers(scene) {
 function updateUniforms(){
   (volumeMesh.material).uniforms['time']['value'] = clock.getElapsedTime();
   (volumeMesh.material).uniforms['curve_data']['value'] =  updateCurveData(curveMesh, NUM_CURVE_POINTS);
-  (volumeMesh.material).uniforms['playback_progress']['value'] = (player.currentTime) / player.duration;
+  //(volumeMesh.material).uniforms['playback_progress']['value'] = (player.currentTime) / player.duration;
 }
 function animate() {
   requestAnimationFrame(animate);
