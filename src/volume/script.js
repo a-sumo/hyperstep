@@ -456,11 +456,11 @@ void main(void) {
     step++;
 	}
 
-  color.x = linear_to_srgb(color.x);
-  color.y = linear_to_srgb(color.y);
-  color.z = linear_to_srgb(color.z);
+  gl_FragColor.r = linear_to_srgb(gl_FragColor.r);
+  gl_FragColor.g = linear_to_srgb(gl_FragColor.g);
+  gl_FragColor.b = linear_to_srgb(gl_FragColor.b);
 
-  gl_FragColor = color;
+  //gl_FragColor = color;
 
 }
 `;
