@@ -72,7 +72,7 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
   - [x] Audio file processing
   - [x] Microphone input processing
   - [ ] Bounding volume hierarchies for multiple symbols
-  - [ ] Definition of a interaction rules
+  - [ ] Definition of interaction rules
   - [ ] Source separation
   
   Quickstart:
@@ -82,7 +82,7 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
   - Run locally with:
   ```npm run dev```
   
-  The project uses [SharedArrayBuffers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) which require a secure context. When prompted, open the project on localhost. The deployed GiHub page currently works on Chrome and Firefox.  
+  The project uses [SharedArrayBuffers](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer) which require a secure context. When prompted, open the project on localhost. The deployed GitHub page currently works on Chrome and Firefox.  
   
   
 </details>
