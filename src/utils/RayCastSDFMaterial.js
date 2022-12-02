@@ -8,7 +8,7 @@ export class RayCastSDFMaterial extends ShaderMaterial {
 
 			defines: {
 
-				MAX_STEPS: 500,
+				MAX_STEPS: 100,
 				SURFACE_EPSILON: 0.001,
 
 			},
@@ -77,6 +77,7 @@ export class RayCastSDFMaterial extends ShaderMaterial {
 						bool intersectsSurface = false;
 						vec4 localPoint = vec4( sdfRayOrigin + sdfRayDirection * ( distToBox + 1e-5 ), 1.0 );
 						vec4 point = sdfTransform * localPoint;
+						int step = 0;
 						// ray march
 						for ( int i = 0; i < MAX_STEPS; i ++ ) {
 							// sdf box extends from - 0.5 to 0.5
@@ -92,25 +93,32 @@ export class RayCastSDFMaterial extends ShaderMaterial {
 							// 	break;
 							// }
                             // get the distance value
-							float distance = texture2D( sdfTex, uv ).r;
-                            vec2 uv2 = vec2(distance, 0.03 / max(pow(distance,2.0), EPSILON));
+							float distance = abs(texture2D( sdfTex, uv - 0.5).r);
+							distance = distance * 0.1; 
+							distance = clamp(length(uv-vec3(0.5)), 0.0, 1.0);
+							// sample data texture along distance value
+                            vec2 uv2 = vec2(0., distance);
                             float dataSample = texture(dataTex, uv2).r;
-                            // float dataSample = 0.1;
-                            vec4 baseColor = vec4(pow(dataSample,10.0) * 1./distance,
-                            pow(dataSample, 2.0),
-                            pow(dataSample, 0.0) * 1./distance, dataSample);
+							vec4 baseColor = vec4(pow(dataSample,10.0) * distance,
+							pow(dataSample, 2.0),
+							pow(dataSample, 0.0) * distance, dataSample) ;
+					
+							// vec4 baseColor = vec4(distance,0., 0., 0.4);
+							// baseColor.rgb = uv;
+							// baseColor.w = 1.0;
                             // Opacity correction
-                            gl_FragColor.w = 1.0 - pow(1.0 - gl_FragColor.w, 0.01);
+							baseColor.w = 1.0 - pow(1.0 - baseColor.w, 0.01);
                             // Alpha-blending
                             gl_FragColor.rbg += (1.0 -  gl_FragColor.a) * baseColor.a * baseColor.xyz;
-                            gl_FragColor.a += (1.0 - gl_FragColor.a) * baseColor.a;
-                            // exit the loop if the accumulated alpha is close to 1.0
-                            if (gl_FragColor.a > 0.1) {
-                              break;
-                            }
+							gl_FragColor.a += (1.0 - gl_FragColor.a) * baseColor.w;
+                            // exit the loop if the accumulated alpha is close to 1
+                            // if (gl_FragColor.a > 0.9) {
+                            //   break;
+                            // }
 							// step the ray
-							point.xyz += rayDirection * abs(distance);
+							point.xyz += rayDirection * 0.01;
 						}
+	
 						// // find the surface normal
 						// if ( intersectsSurface ) {
 						// 	// compute the surface normal
