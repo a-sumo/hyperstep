@@ -38,6 +38,7 @@ export class RayCastSDFMaterial extends ShaderMaterial {
 				uniform float surface;
 				uniform sampler3D sdfTex;
                 uniform sampler2D dataTex;
+				uniform sampler2D curvePositions;
 				uniform vec3 normalStep;
 				uniform mat4 projectionInverse;
 				uniform mat4 sdfTransformInverse;
@@ -53,6 +54,81 @@ export class RayCastSDFMaterial extends ShaderMaterial {
 					float distToBox = max( 0.0, distA );
 					float distInsideBox = max( 0.0, distB - distToBox );
 					return vec2( distToBox, distInsideBox );
+				}
+				vec2 sdBezier( vec3 p, vec3 b0, vec3 b1, vec3 b2 )
+				{
+					b0 -= p;
+					b1 -= p;
+					b2 -= p;
+				   
+					vec3 b01 = cross(b0,b1);
+					vec3 b12 = cross(b1,b2);
+					vec3 b20 = cross(b2,b0);
+					
+					vec3 n =  b01+b12+b20;
+					
+					float a = -dot(b20,n);
+					float b = -dot(b01,n);
+					float d = -dot(b12,n);
+			
+					float m = -dot(n,n);
+					
+				  //vec3  g = b*(b2-b1) + d*(b1-b0) + a*(b2-b0)*0.5;
+					vec3  g =  (d-b)*b1 + (b+a*0.5)*b2 + (-d-a*0.5)*b0;
+					float f = a*a*0.25-b*d;
+					vec3  k = b0-2.0*b1+b2;
+					float t = clamp((a*0.5+b-0.5*f*dot(g,k)/dot(g,g))/m, 0.0, 1.0 );
+					
+					return vec2(length(mix(mix(b0,b1,t), mix(b1,b2,t),t)),t);
+				}
+				vec3 map( vec3 p ) {
+					vec3 a = vec3(0.0,0.0,0.0);
+					vec3 b = vec3(0.0, 0.1,0.0);
+					vec3 c = vec3(0.0, 0.5,1.0);
+					float hm = 0.0;
+					float id = 0.0;
+					float am = 0.0;
+					
+					float dm = length(p-a);
+					
+					vec3 pb = vec3(1.0,0.0,0.0);
+					float off = 0.0;
+					for( int i=0; i<3; i++ )
+					{	
+						//vec3 bboxMi = min(a,min(b,c))-0.3;
+						//vec3 bboxMa = max(a,max(b,c))+0.3;
+						
+						vec2 h = sdBezier( p, a, b, c );
+						float kh = (float(i) + h.y)/8.0;
+
+
+						// #if COMPUTE_UV==1
+						// 	vec3 bb = normalize(cross(b-a,c-a));
+						// 	vec3 qq = bezier(a,b,c,h.y);
+						// 	vec3 tq = normalize(bezier_dx(a,b,c,h.y));
+						// 	vec3 nq = normalize(cross(bb,tq));
+						// 	vec2 uv = vec2(dot(p-qq,nq),dot(p-qq,bb));
+						// 	float ad = acos( dot(pb,bb) );
+						// 	if( i==3 ) ad = -ad; // hack
+						// 	off += ad;
+						// 	float ka = atan(uv.y,uv.x) - off;
+						// 	pb = bb;
+						// #else
+						float ka = 0.0;
+						//#endif
+						
+						// grow next segment
+						vec3 na = c;
+						vec3 nb = c + (c-b);
+						vec3 dir = vec3(0,1,0);
+						vec3 nc = nb + 1.0*dir*sign(-dot(c-b,dir));
+						id += 3.71;
+						a = na;
+						b = nb;
+						c = nc;
+					}
+
+					return vec3( dm*0.5, hm, am );
 				}
 				void main() {
 					// get the inverse of the sdf box transform
@@ -93,7 +169,8 @@ export class RayCastSDFMaterial extends ShaderMaterial {
 							// 	break;
 							// }
                             // get the distance value
-							float distance = abs(texture2D( sdfTex, uv ).r);
+							// float distance = abs(texture2D( sdfTex, uv ).r);
+							float distance = map(uv).x;
 							//distance = distance * 0.1; 
 							//distance = clamp(length(uv-vec3(0.5)), 0.0, 1.0);
 							// sample data texture along distance value
