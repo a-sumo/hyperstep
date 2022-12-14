@@ -5,7 +5,6 @@ Hyperstep stems from a desire to make music by navigating into and operating on 
 Many of the patterns found in music originate from physical processes and interactions observed by humans in the real world. 
 It is thus natural to use these very processes and interactions as instruments and reasoning tools for music production.
 
-
 ## [Organic drums through agent self-regulation](https://github.com/a-sumo/hyperstep/blob/main/colab/agent_self_regulation.ipynb)
 <details>
   <summary>Project Description</summary>
@@ -85,3 +84,11 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
 </details>
 
 </details>
+
+## [Artistic exploration](https://a-sumo.github.io/hyperstep/)
+
+Visual work I've done to crystallize early intuitions. These are renditions of processes inferred in an attempt to make sense of sound events during music listening.
+- https://imgur.com/gallery/MoDVr6v
+- https://imgur.com/gallery/gkFPXXu
+- https://imgur.com/gallery/pfrvIot
+
