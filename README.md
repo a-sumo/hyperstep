@@ -85,10 +85,3 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
 
 </details>
 
-## [Artistic exploration](https://a-sumo.github.io/hyperstep/)
-
-Visual work I've done to crystallize early intuitions. These are renditions of processes inferred in an attempt to make sense of sound events during music listening.
-- https://imgur.com/gallery/MoDVr6v
-- https://imgur.com/gallery/gkFPXXu
-- https://imgur.com/gallery/pfrvIot
-
