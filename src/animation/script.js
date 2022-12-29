@@ -50,26 +50,6 @@ function init() {
 
     // geometry
 
-    const vector = new THREE.Vector4();
-
-    const instances = count;
-
-    const positions = [];
-    const offsets = [];
-    const colors = [];
-    const orientationsStart = [];
-    const orientationsEnd = [];
-
-    // positions.push( 0.025, - 0.025, 0 );
-    // positions.push( - 0.025, 0.025, 0 );
-    // positions.push( 0, 0, 0.025 );
-    const geometry = new THREE.ConeGeometry( .02, 0.6, 32 );
-    const material = new THREE.MeshBasicMaterial( {color: 0x0270ff} );
-
-    mesh = new THREE.InstancedMesh( geometry, material, count );
-    mesh.instanceMatrix.setUsage( THREE.DynamicDrawUsage ); // will be updated every frame
-    scene.add( mesh );
-
     //
 
     const gui = new GUI();
@@ -110,44 +90,7 @@ function onWindowResize() {
 function animate() {
 
     requestAnimationFrame( animate );
-    if ( mesh ) {
-
-        const time = Date.now() * 0.001;
-
-        // mesh.rotation.x = Math.sin( time / 4 );
-        // mesh.rotation.y = Math.sin( time / 2 );
-
-        let i = 0;
-        const offset = ( amount - 1 ) / 2;
-
-        for ( let x = 0; x < amount; x ++ ) {
-
-            for ( let y = 0; y < amount; y ++ ) {
-
-                for ( let z = 0; z < amount; z ++ ) {
-                    // if (x * y * z < 100){
-                    //     console.log(x,y,z);
-                    // }
-                    
-                    dummy.position.set( offset - x, offset - y, offset - z );
-                    //dummy.rotation.y = ( Math.sin( x / 4 + time ) + Math.sin( y / 4 + time ) + Math.sin( z / 4 + time ) );
-                    //dummy.rotation.z = dummy.rotation.y * 2;
-                    dummy.rotation.z = Math.sin( time );
-                    dummy.updateMatrix();
-
-                    mesh.setMatrixAt( i ++, dummy.matrix );
-
-                }
-
-            }
-
-        }
-
-        mesh.instanceMatrix.needsUpdate = true;
-
-    }
     render();
-
     stats.update();
 
 }

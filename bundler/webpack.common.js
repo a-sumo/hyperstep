@@ -2,7 +2,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const path = require('path');
 
-const pages = ["home", "volume", "vector_field", "playground"];
+const pages = ["home", "volume", "animation", "playground"];
 
 module.exports = (env, argv) => {
   return {
