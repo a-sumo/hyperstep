@@ -5,16 +5,20 @@ import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import Stats from 'stats-js';
+import { MeshBVH} from 'three-mesh-bvh';
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
 import { StaticGeometryGenerator } from 'three-mesh-bvh/src/utils/StaticGeometryGenerator.js';
 import { GenerateSDFMaterial } from '../utils/GenerateSDFMaterial.js';
 import { RayMarchSDFMaterial } from '../utils/RayMarchSDFMaterial.js';
 import { RayCastSDFMaterial } from '../utils/RayCastSDFMaterial.js';
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { CappedTubeGeometry } from '../utils/CappedTubeGeometry.js';
 import { URLFromFiles } from '../utils/AudioWorkletFunctions.js';
 import audioFile1 from "../assets/audio/r2d2_talk.mp3";
 import audioFile2 from "../assets/audio/synth_melody.mp3";
 import audioFile3 from "../assets/audio/theremin_tone.mp3";
+
+
 const params = {
 
 	gpuGeneration: true,
@@ -33,7 +37,7 @@ const params = {
 let renderer, camera, scene, gui, stats, boxHelper, axesHelper;
 let audioCtx, gumStream, source, audioReader;
 let mic, gain, melspectrogramNode;
-let outputContainer, bvh, geometry, sdfTex, specTex, mesh;
+let outputContainer, bvh, geometry, sdfTex, specTex, curveTex, mesh;
 let generateSdfPass, raymarchPass, raycastPass;
 let bvhGenerationWorker;
 let bufferSize = 1024;
@@ -62,7 +66,11 @@ function onLoadFile(inputElement) {
 	player.load();
 }
 let scaledMelspectrum = [];
-
+let curvePositions = [];
+let codeForProcessorModule = ["https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.umd.js",
+"https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-extractor.umd.js",
+"https://raw.githack.com/MTG/essentia.js/master/examples/demos/melspectrogram-rt/melspectrogram-processor.js",
+"https://unpkg.com/ringbuf.js@0.1.0/dist/index.js"];
 init();
 render();
 
@@ -115,35 +123,45 @@ function init() {
 	raycastPass = new FullScreenQuad(new RayCastSDFMaterial());
 
 	// load model and generate bvh
-	bvhGenerationWorker = new GenerateMeshBVHWorker();
+	// bvhGenerationWorker = new GenerateMeshBVHWorker();
 
-	new GLTFLoader()
-		.setMeshoptDecoder(MeshoptDecoder)
-		.loadAsync('https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb')
-		.then(gltf => {
+	// new GLTFLoader()
+	// 	.setMeshoptDecoder(MeshoptDecoder)
+	// 	.loadAsync('https://raw.githubusercontent.com/gkjohnson/3d-demo-data/main/models/stanford-bunny/bunny.glb')
+	// 	.then(gltf => {
 
-			gltf.scene.updateMatrixWorld(true);
+	// 		gltf.scene.updateMatrixWorld(true);
 
-			const staticGen = new StaticGeometryGenerator(gltf.scene);
-			staticGen.attributes = ['position', 'normal'];
-			staticGen.useGroups = false;
+	// 		const staticGen = new StaticGeometryGenerator(gltf.scene);
+	// 		staticGen.attributes = ['position', 'normal'];
+	// 		staticGen.useGroups = false;
 
-			geometry = staticGen.generate().center();
+	// 		geometry = staticGen.generate().center();
 
-			return bvhGenerationWorker.generate(geometry, { maxLeafTris: 1 });
+	// 		return bvhGenerationWorker.generate(geometry, { maxLeafTris: 1 });
 
-		})
-		.then(result => {
+	// 	})
+	// 	.then(result => {
 
-			bvh = result;
+	// 		bvh = result;
 
-			mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
-			scene.add(mesh);
+	// 		mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
+	// 		scene.add(mesh);
 
-			updateSDF();
+	// 		updateSDF();
 
-		});
+	// 	});
 
+	geometry = new THREE.CapsuleGeometry( 5, 5, 4, 8 );
+	const curve = new THREE.CatmullRomCurve3( [
+		new THREE.Vector3( 0, 0, 0 ),
+		new THREE.Vector3( 0.5, 0.5, 0.5 ),
+	] );
+	const path = new THREE.CatmullRomCurve3( new THREE.Vector3( - 1, - 1, 0 ), new THREE.Vector3( - 1, 1, 0 ), new THREE.Vector3( 1, 1, 0 ) );
+	// geometry = new CappedTubeGeometry(path, 20,2,false)
+	
+	bvh = new MeshBVH( geometry );
+	mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
 	rebuildGUI();
 	// Some browsers partially implement mediaDevices. We can't assign an object
 	// with getUserMedia as it would overwrite existing properties.
@@ -205,6 +223,24 @@ function createDataTexture(width, height) {
 			specTex[stride + 3] = 255;
 			stride += 4;
 		}
+	}
+}
+function setCurveDataTexture(curvePositions) {
+	
+	curveTex = new THREE.DataTexture(new Float32Array(curvePositions.length * 4), curvePositions.length, 1);
+	curveTex.type = THREE.FloatType;
+	curveTex.format = THREE.RGBAFormat;
+	curveTex.minFilter = THREE.NearestFilter;
+	curveTex.magFilter = THREE.NearestFilter;
+	curveTex.unpackAlignment = 1;
+	curveTex.needsUpdate = true;
+	let stride = 0;
+	for (let k = 0; k < curvePositions.length; k++) {
+		curveTex.image.data[stride + 0] = curvePositions[k].x;
+		curveTex.image.data[stride + 1] = curvePositions[k].y;
+		curveTex.image.data[stride + 2] = curvePositions[k].z;
+		curveTex.image.data[stride + 3] = 1.0;
+		stride += 4;
 	}
 }
 // build the gui with parameters based on the selected display mode
@@ -445,7 +481,12 @@ function render() {
 				}
 			}
 		}
+		// dispose of the existing spectrum texture
+		if (specTex) {
 
+			specTex.dispose();
+
+		}
 		const widthS = numFrames;
 		const heightS = melNumBands;
 		specTex = new THREE.DataTexture(new Uint8Array(widthS * heightS * 4), widthS, heightS);
@@ -455,7 +496,7 @@ function render() {
 		specTex.magFilter = THREE.NearestFilter;
 		specTex.unpackAlignment = 1;
 		specTex.needsUpdate = true;
-		const data = specTex.image.data;
+
 		let stride = 0;
 		for (let y = 0; y < heightS; y++) {
 			for (let x = 0; x < widthS; x++) {
@@ -472,6 +513,19 @@ function render() {
 				stride += 4;
 			}
 		}
+		const curve = new THREE.QuadraticBezierCurve3(
+			new THREE.Vector3( 0, 0, 0 ),
+			new THREE.Vector3( 0, 0.5, 0 ),
+			new THREE.Vector3( 0, 1, 0 )
+		);
+		curvePositions = curve.getPoints(2);
+		// dispose of the existing curve texture
+		if (curveTex) {
+
+			curveTex.dispose();
+
+		}
+		curveTex = setCurveDataTexture(curvePositions);
 		// render the ray cast texture
 		camera.updateMatrixWorld();
 		mesh.updateMatrixWorld();
@@ -490,6 +544,7 @@ function render() {
 		const { width, depth, height } = tex.image;
 		raycastPass.material.uniforms.sdfTex.value = tex;
 		raycastPass.material.uniforms.dataTex.value = specTex;
+		raycastPass.material.uniforms.curveTex.value = curveTex;
 		raycastPass.material.uniforms.normalStep.value.set(1 / width, 1 / height, 1 / depth);
 		raycastPass.material.uniforms.surface.value = params.surface;
 		raycastPass.material.uniforms.projectionInverse.value.copy(camera.projectionMatrixInverse);
@@ -551,11 +606,6 @@ function startAudioProcessingStream(stream) {
 		gain = audioCtx.createGain();
 		gain.gain.setValueAtTime(0, audioCtx.currentTime);
 
-		let codeForProcessorModule = ["https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.umd.js",
-			"https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-extractor.umd.js",
-			"https://raw.githack.com/MTG/essentia.js/master/examples/demos/melspectrogram-rt/melspectrogram-processor.js",
-			"https://unpkg.com/ringbuf.js@0.1.0/dist/index.js"];
-
 		// inject Essentia.js code into AudioWorkletGlobalScope context, then setup audio graph
 		URLFromFiles(codeForProcessorModule)
 			.then((concatenatedCode) => {
@@ -583,10 +633,6 @@ function startAudioProcessingMediaElt() {
 	source = audioCtx.createMediaElementSource(player);
 	gain = audioCtx.createGain();
 	gain.gain.setValueAtTime(0, audioCtx.currentTime);
-	let codeForProcessorModule = ["https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia-wasm.umd.js",
-		"https://cdn.jsdelivr.net/npm/essentia.js@0.1.3/dist/essentia.js-extractor.umd.js",
-		"https://raw.githack.com/MTG/essentia.js/master/examples/demos/melspectrogram-rt/melspectrogram-processor.js",
-		"https://unpkg.com/ringbuf.js@0.1.0/dist/index.js"];
 
 	// inject Essentia.js code into AudioWorkletGlobalScope context, then setup audio graph and start animation
 	URLFromFiles(codeForProcessorModule)
