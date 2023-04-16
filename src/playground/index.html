@@ -1,97 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>three-mesh-bvh - Fast SDF Generation</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-
-    <style type="text/css">
-        html, body {
-            padding: 0;
-            margin: 0;
-            overflow: hidden;
-			font-family: monospace;
-			background-color: #6e94e0;
-        }
-
-        canvas {
-            width: 100%;
-            height: 100%;
-        }
-
-		#output {
-			color: #ffffff;
-			position: absolute;
-			left: 10px;
-			bottom: 10px;
-			white-space: pre;
-		}
-
-		#info {
-			position: absolute;
-			top: 0;
-			width: 100%;
-			color: white;
-			font-family: monospace;
-			text-align: center;
-			padding: 5px 0;
-		}
-
-		a {
-			color: white;
-		}
+    <meta charset="UTF-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js and Web Audio API Example</title>
+    <style>
+      body { margin: 0; }
+      canvas { display: block; }
     </style>
 </head>
 <body>
-	<!-- <div id="info">
-		3D Texture <a href="https://en.wikipedia.org/wiki/Signed_distance_function">Signed Distance Field</a> generation on the gpu and raycasting.
-		<br/>
-
-	</div> -->
-	<div id="output"></div>
-    <section>
-        <audio id="audioPlayer" controls autostart="false" preload="none"></audio>
-    </section>
-    <section>
-        <div class=" flex ">
-            <button id="recordButton"
-                class="w-40 bg-gray-300 py-2 px-4 text-gray-700 text-center font-semibold rounded hover:shadow-[2px_2px_0_0_#000]"
-                role="switch">
-                Record
-            </button>
-            <div id="button-group" class="px-4 dropdown group inline-block relative">
-                <button class="bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded inline-flex items-center">
-                    <span class="">Load Audio File</span>
-                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                    </svg>
-                </button>
-                <ul class="absolute hidden text-gray-700 pt-1 group-hover:block">
-                    <li class="">
-                        <label for="loadFileInput"
-                            class="rounded-t text-center font-semibold  resize-none bg-gray-200 hover:bg-emerald-400 py-2 px-4 block whitespace-no-wrap"
-                            id="loadFileBtn">
-                            Local File
-                        </label>
-                        <input accept=".wav,.mp3,.oga,.aac,.flac" type="file" id="loadFileInput">
-                    </li>
-                    <li class="">
-                        <button id="audio-1"
-                            class="bg-gray-200 w-40 hover:bg-emerald-200 py-2 px-4 block whitespace-no-wrap">R2D2 Talk</a>
-                    </li>
-                    <li class="">
-                        <button id="audio-2"
-                            class="bg-gray-200 w-40 hover:bg-emerald-200 py-2 px-4 block whitespace-no-wrap">Synth
-                            Melody</a>
-                    </li>
-                    <li class="">
-                        <button id="audio-3"
-                            class="rounded-b bg-gray-200 w-40  hover:bg-emerald-200 py-2 px-4 block whitespace-no-wrap">Theremin
-                            Tone</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </section>
-	<div id="stats"></div>
+    <button id="startAudio">Start Audio</button>
+    <!-- <script src="script.js"></script> -->
 </body>
 </html>
