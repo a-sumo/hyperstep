@@ -2,8 +2,7 @@
 ## [WIP] Intuitive and interactive representations for music production. 
 
 Hyperstep stems from a desire to make music by navigating into and operating on native spaces. 
-Many of the patterns found in music originate from physical processes and interactions observed by humans in the real world. 
-It is thus natural to use these very processes and interactions as instruments and reasoning tools for music production.
+Many of the patterns found in music originate from physical processes and interactions observed by humans in the real world, which makes it natural to attempt to use these very processes and interactions as instruments and reasoning tools for music production.
 
 ## [Organic drums through agent self-regulation](https://github.com/a-sumo/hyperstep/blob/main/colab/agent_self_regulation.ipynb)
 <details>
