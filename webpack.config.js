@@ -1,7 +1,7 @@
 
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const pages = ["home", "volume", "animation", "playground"];
+const pages = ["home", "volume", "volume-minimal", "playground"];
 const path = require('path');
 
  module.exports = {
@@ -96,6 +96,9 @@ const path = require('path');
         type: 'asset/resource',
       },
     ],
-   }
+   },
+   resolve: {
+    extensions: ['.js', '.jsx', '.ts', '.tsx'],
+  },
 };
 
