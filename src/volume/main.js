@@ -1137,7 +1137,8 @@ function addGUI() {
   // Distance Function
   // Distance Function Parameters
   const dfFolder = gui.addFolder('Distance Function');
-  
+  // dfFolder.add(params, 'dithering_amount', 0, 1).step(0.01).name('Dithering Amount').onChange(updateUniforms);
+
   dfFolder.add(params, 'df_type', { Sphere: 0, Box: 1, Plane: 2 }).name('Type').onChange(updateUniforms);
   dfFolder.add(params, 'dist_func_tube', 0, 1).step(0.01).name('Tube Weight').onChange(updateUniforms);
   dfFolder.add(params, 'dist_func_box', 0, 1).step(0.01).name('Box Weight').onChange(updateUniforms);
