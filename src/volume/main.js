@@ -59,7 +59,30 @@ const params = {
   num_frames: numFrames,
   fft_size: bufferSize,
   dt_scale: 0.1,
+  dithering_amount: 1.0,
   max_steps: 100,
+  df_type: 0,
+  dist_func_tube: 1.0,
+  dist_func_box: 1.0,
+  dist_func_plane: 1.0,
+  df_sphere_tube: 0.0,
+  df_sphere_box: 0.0,
+  df_sphere_plane: 0.0,
+  df_tube_box: 0.0,
+  df_tube_plane: 0.0,
+  df_plane_box: 0.0,
+  scale_x: 1,
+  scale_y: 1,
+  scale_z: 1,
+  global_scale: 0.03,
+  min_dist: 0,
+  max_dist: 1,
+  rot_x: 0,
+  rot_y: 0,
+  rot_z: 0,
+  translation_x: 0,
+  translation_y: 0,
+  translation_z: 0,
 };
 
 // From a series of URL to js files, get an object URL that can be loaded in an
@@ -189,14 +212,52 @@ uniform int color_preset_type;
 uniform vec3 uni_color;
 uniform vec3 color_1;
 uniform vec3 color_2;
+uniform vec2 resolution;
+uniform float dithering_amount;
 
+float hash(float x) {
+    return fract(sin(x)*43758.5453);
+}
+
+vec3 halton(int index) {
+    float r = 1.0 / 2.0;
+    float g = 1.0 / 3.0;
+    float b = 1.0 / 5.0;
+    for (int i = index; i > 0; i /= 2) {
+        r -= r / 2.0;
+        if (i % 2 != 0) r += 1.0 / 2.0;
+    }
+    for (int i = index; i > 0; i /= 3) {
+        g -= g / 3.0;
+        if (i % 3 == 1) g += 1.0 / 3.0;
+        if (i % 3 == 2) g += 2.0 / 3.0;
+    }
+    for (int i = index; i > 0; i /= 5) {
+        b -= b / 5.0;
+        if (i % 5 == 1) b += 1.0 / 5.0;
+        if (i % 5 == 2) b += 2.0 / 5.0;
+        if (i % 5 == 3) b += 3.0 / 5.0;
+        if (i % 5 == 4) b += 4.0 / 5.0;
+    }
+    return vec3(r, g, b);
+}
+
+vec3 dither(vec2 uv) {
+    vec3 uvw = vec3(uv.x * resolution.x / resolution.y,
+                    uv.y,
+                    uv.x + 0.33);
+
+    float seed = hash(uvw.x + uvw.y * 57.0 + time);
+
+    return halton(int(seed * 100.0));
+}
 
 // Axis-Aligned Bounding Box intersection
 vec2 intersect_box(vec3 aabbMin, vec3 aabbMax, vec3 orig, vec3 dir) {
-
+  vec3 ditherNoise = dither(gl_FragCoord.xy / resolution.xy);
 	vec3 inv_dir = 1.0 / dir;
-	vec3 tmin_tmp = (aabbMin - orig) * inv_dir;
-	vec3 tmax_tmp = (aabbMax - orig) * inv_dir;
+	vec3 tmin_tmp = (aabbMin - orig + ditherNoise - vec3(1.0)) * inv_dir ;
+	vec3 tmax_tmp = (aabbMax - orig + ditherNoise - vec3(1.0)) * inv_dir ;
 	vec3 tmin = min(tmin_tmp, tmax_tmp);
 	vec3 tmax = max(tmin_tmp, tmax_tmp);
 	float t0 = max(tmin.x, max(tmin.y, tmin.z));
@@ -546,6 +607,8 @@ function init() {
     'spectrum': { value: createDataTexture(x_dim, y_dim) },
     'curve_data': { value: createCurveDataTexture(curve_data) },
     'time': {value: clock.getElapsedTime()},
+    'resolution' : { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+    'dithering_amount': {value: 1.0},
     'playback_progress': {value: 0.0},
     'df_sphere_tube': {value: params.df_sphere_tube},
     'df_sphere_box': {value: params.df_sphere_box},
@@ -565,7 +628,8 @@ function init() {
     uniforms: volumeUniforms,
     vertexShader: raycastVertexShader,
     fragmentShader: raycastFragmentShader,
-    side: THREE.DoubleSide,
+    // cull front 
+    side: THREE.BackSide,
     transparent: true
   });
 
@@ -655,8 +719,23 @@ function addHelpers(scene) {
 
 function updateUniforms(){
   (volumeMesh.material).uniforms['time']['value'] = clock.getElapsedTime();
+  // (volumeMesh.material).uniforms['resolution'] = new THREE.Vector2(window.innerWidth, window.innerHeight);
+  (volumeMesh.material).uniforms['dithering_amount'] = params.dithering_amount;
   (volumeMesh.material).uniforms['curve_data']['value'] =  updateCurveData(curveMesh, NUM_CURVE_POINTS);
   (volumeMesh.material).uniforms['playback_progress']['value'] = (player.currentTime) / player.duration;
+  (volumeMesh.material).uniforms['df_type']['value'] = params.df_type;
+  (volumeMesh.material).uniforms['df_sphere_tube']['value'] = params.df_sphere_tube;
+  (volumeMesh.material).uniforms['df_sphere_box']['value'] = params.df_sphere_box;
+  (volumeMesh.material).uniforms['df_sphere_plane']['value'] = params.df_sphere_plane;
+  (volumeMesh.material).uniforms['df_tube_box']['value'] = params.df_tube_box;
+  (volumeMesh.material).uniforms['df_tube_plane']['value'] = params.df_tube_plane;
+  (volumeMesh.material).uniforms['df_plane_box']['value'] = params.df_plane_box;
+  (volumeMesh.material).uniforms['df_scale']['value'].set(params.scale_x, params.scale_y, params.scale_z);
+  (volumeMesh.material).uniforms['global_scale']['value'] = params.global_scale;
+  (volumeMesh.material).uniforms['min_dist']['value'] = params.min_dist;
+  (volumeMesh.material).uniforms['max_dist']['value'] = params.max_dist;
+  (volumeMesh.material).uniforms['df_rot']['value'].set(params.rot_x, params.rot_y, params.rot_z);
+  (volumeMesh.material).uniforms['df_translation']['value'].set(params.translation_x, params.translation_y, params.translation_z)
 }
 function animate() {
   requestAnimationFrame(animate);
@@ -1014,7 +1093,7 @@ function setupAudioGraphMediaElt() {
     }
   });
   // The AudioWorklet node causes cracking noises during playback so we 
-  // connect it with a 
+  // connect it with a gain node to avoid this.
   try {
     melspectrogramNode.port.postMessage({
       sab: sab,
@@ -1056,108 +1135,36 @@ function addGUI() {
     numFrames = value;
   } );
   // Distance Function
-  const df_folder = gui.addFolder('distance function') ;
-  df_folder.add( params, 'min_dist').step(0.01).name( 'min_dist' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['min_dist']['value'] = value;
-  } );
-  df_folder.add( params, 'max_dist').step(0.01).name( 'max_dist' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['max_dist']['value'] = value;
-  } );
-  df_folder.add( params, 'df_type', {
-    'Sphere - Tube': 0,'Sphere - Box': 1,'Sphere - Plane': 2,
-    'Tube - Box': 3, 'Tube - Plane': 4,'Plane - Box': 5}).name( 'sphere/tube' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_type']['value'] = value;
-  } );
-  df_folder.add( params, 'df_sphere_tube', 0, 1).step(0.01).name( 'sphere/tube' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_sphere_tube']['value'] = value;
-  } );
-  df_folder.add( params, 'df_sphere_box', 0, 1).step(0.01).name( 'sphere/box' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_sphere_box']['value'] = value;
-  } );
-  df_folder.add( params, 'df_sphere_plane', 0, 1).step(0.01).name( 'sphere/plane' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_sphere_plane']['value'] = value;
-  } );
-  df_folder.add( params, 'df_tube_box', 0, 1).step(0.01).name( 'tube/box' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_tube_box']['value'] = value;
-  } );
-  df_folder.add( params, 'df_tube_plane', 0, 1).step(0.01).name( 'tube/plane' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_tube_plane']['value'] = value;
-  } );
-  df_folder.add( params, 'df_plane_box', 0, 1).step(0.01).name( 'plane/box' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_plane_box']['value'] = value;
-  } );
-  df_folder.add( params, 'global_scale').step(0.0001).name( 'global_scale' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['global_scale']['value'] = value;
-  } );
-  const transforms = gui.addFolder('transforms') ;
-  transforms.add( params, 'scale_x', 0, 1).step(0.00001).name( 'scale_x' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_scale']['value'] = new THREE.Vector3(value, params.scale_y, params.scale_z);
-  } );
-  transforms .add( params, 'scale_y', 0, 1).step(0.00001).name( 'scale_y' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_scale']['value'] = new THREE.Vector3(params.scale_x, value, params.scale_z);
-  } );
-  transforms.add( params, 'scale_z', 0, 1).step(0.00001).name( 'scale_z' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_scale']['value'] = new THREE.Vector3(params.scale_x, params.scale_y, value);
-  } );
-  transforms.add( params, 'rot_x', -360, 360).step(0.1).name( 'rotate_x' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_rot']['value'] = new THREE.Vector3(value, params.rot_y, params.rot_z);
-  } );
-  transforms.add( params, 'rot_y', -360, 360).step(0.1).name( 'rotate_y' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_rot']['value'] = new THREE.Vector3(params.rot_x, value, params.rot_z);
-  } );
-  transforms.add( params, 'rot_z', -360, 360).step(0.1).name( 'rotate_z' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_rot']['value'] = new THREE.Vector3(params.rot_x, params.rot_y, value);
-  } );
-  transforms.add( params, 'translation_x').step(0.01).name( 'translate_x' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_translation']['value'] = new THREE.Vector3(value, params.translation_y, params.translation_z);
-  } );
-  transforms.add( params, 'translation_y').step(0.01).name( 'translate_y' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_translation']['value'] = new THREE.Vector3(params.translation_x, value, params.translation_z);
-  } );
-  transforms.add( params, 'translation_z').step(0.01).name( 'translate_z' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['df_translation']['value'] = new THREE.Vector3(params.translation_x, params.translation_y, value);
-  } );
-  // Color
-  const color_folder = gui.addFolder('color') ;
-  color_folder.add( params, 'color_mode', {'Presets': 0, 'Gradient': 1, 'Unicolor': 2}).name( 'color_mode' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['color_mode']['value'] = value;
-  } );
-  color_folder.add( params, 'color_preset_type', 0, 4).step(1).name( 'color_preset' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['color_preset_type']['value'] = value;
-  } );
-  color_folder.add( params, 'color_space', {'RBG': 0, 'HSV': 1}).name( 'color_space' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['color_space']['value'] = value ;
-  } );
-  color_folder.addColor( params, 'uni_color').name( 'unicolor' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['uni_color']['value'] = new THREE.Color(value) ;
-  } );
-  color_folder.addColor( params, 'color_1').name( 'color_1' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['color_1']['value'] = new THREE.Color(value) ;
-  } );
-  color_folder.addColor( params, 'color_2').name( 'color_2' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['color_2']['value'] = new THREE.Color(value) ;
-  } ); 
-  // Spectrogram
-  const spectrogram_folder = gui.addFolder('spectrogram') ;
-  spectrogram_folder.add( params, 'mel_spec_bins', 10, 96).step(1).name( 'mel_spec_bins' ).onChange( function ( value ) {
-    melNumBands = value ;
-  } ); 
-  // Raycasting
-  const raycasting_folder = gui.addFolder('raycasting') ;
-  raycasting_folder.add( params, 'dt_scale', 0.005,).step(0.001).name( 'dt_scale' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['dt_scale']['value'] = value;    
-  } );
-  raycasting_folder.add( params, 'max_steps', 1,).step(1).name( 'max_steps' ).onChange( function ( value ) {
-    (volumeMesh.material).uniforms['max_steps']['value'] = value;    
-  } );
+  // Distance Function Parameters
+  const dfFolder = gui.addFolder('Distance Function');
+  
+  dfFolder.add(params, 'df_type', { Sphere: 0, Box: 1, Plane: 2 }).name('Type').onChange(updateUniforms);
+  dfFolder.add(params, 'dist_func_tube', 0, 1).step(0.01).name('Tube Weight').onChange(updateUniforms);
+  dfFolder.add(params, 'dist_func_box', 0, 1).step(0.01).name('Box Weight').onChange(updateUniforms);
+  dfFolder.add(params, 'dist_func_plane', 0, 1).step(0.01).name('Plane Weight').onChange(updateUniforms);
+
+  dfFolder.add(params, 'df_sphere_tube', 0, 1).step(0.01).name('Sphere-Tube Mix').onChange(updateUniforms);
+  dfFolder.add(params, 'df_sphere_box', 0, 1).step(0.01).name('Sphere-Box Mix').onChange(updateUniforms);
+  dfFolder.add(params, 'df_sphere_plane', 0, 1).step(0.01).name('Sphere-Plane Mix').onChange(updateUniforms);
+  dfFolder.add(params, 'df_tube_box', 0, 1).step(0.01).name('Tube-Box Mix').onChange(updateUniforms);
+  dfFolder.add(params, 'df_tube_plane', 0, 1).step(0.01).name('Tube-Plane Mix').onChange(updateUniforms);
+  dfFolder.add(params, 'df_plane_box', 0, 1).step(0.01).name('Plane-Box Mix').onChange(updateUniforms);
+
+  dfFolder.add(params, 'scale_x', 0.1, 10).step(0.1).name('Scale X').onChange(updateUniforms);
+  dfFolder.add(params, 'scale_y', 0.1, 10).step(0.1).name('Scale Y').onChange(updateUniforms);
+  dfFolder.add(params, 'scale_z', 0.1, 10).step(0.1).name('Scale Z').onChange(updateUniforms);
+  dfFolder.add(params, 'global_scale', 0.01, 1).step(0.01).name('Global Scale').onChange(updateUniforms);
+
+  dfFolder.add(params, 'min_dist', 0, 1).step(0.01).name('Min Distance').onChange(updateUniforms);
+  dfFolder.add(params, 'max_dist', 0, 1).step(0.01).name('Max Distance').onChange(updateUniforms);
+
+  dfFolder.add(params, 'rot_x', -180, 180).step(1).name('Rotation X').onChange(updateUniforms);
+  dfFolder.add(params, 'rot_y', -180, 180).step(1).name('Rotation Y').onChange(updateUniforms);
+  dfFolder.add(params, 'rot_z', -180, 180).step(1).name('Rotation Z').onChange(updateUniforms);
+
+  dfFolder.add(params, 'translation_x', -5, 5).step(0.1).name('Translation X').onChange(updateUniforms);
+  dfFolder.add(params, 'translation_y', -5, 5).step(0.1).name('Translation Y').onChange(updateUniforms);
+  dfFolder.add(params, 'translation_z', -5, 5).step(0.1).name('Translation Z').onChange(updateUniforms);
+
+  dfFolder.open();
 }
-
-
-
-
-
-
-
-
-
-

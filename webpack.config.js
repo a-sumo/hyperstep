@@ -7,10 +7,10 @@ const path = require('path');
  module.exports = {
    entry: pages.reduce((config, page) => {
     if (page == 'home'){
-      config[page] = `./src/script.js`;
+      config[page] = `./src/main.js`;
     }
     else{
-      config[page] = `./src/${page}/script.js`;
+      config[page] = `./src/${page}/main.js`;
     }
     return config;
   }, {}),

@@ -1,0 +1,2 @@
+import THREE from 'three';
+

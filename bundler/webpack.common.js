@@ -6,13 +6,13 @@ const pages = ["home", "volume", "volume-minimal", "playground"];
 
 module.exports = (env, argv) => {
   return {
-    // entry: path.resolve(__dirname, '../src/script.js'),
+    // entry: path.resolve(__dirname, '../src/main.js'),
     entry: pages.reduce((config, page) => {
       if (page == 'home'){
-        config[page] = `./src/script.js`;
+        config[page] = `./src/main.js`;
       }
       else{
-        config[page] = `./src/${page}/script.js`;
+        config[page] = `./src/${page}/main.js`;
       }
       return config;
     }, {}),
