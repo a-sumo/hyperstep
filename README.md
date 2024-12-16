@@ -8,7 +8,6 @@ Many of the patterns found in music originate from physical processes and intera
 <details>
   <summary>Project Description</summary>
   
-  
   In this notebook, I attempt to recreate organic temporal patterns and syncopation by modeling composition as an agent regulating internal properties through a set of sound-associated actions. The key insight is to assign opposite effects to kicks and snare/claps.
   
  The direction of these effects has been determined arbitrarily, although I believe there is a *grammar of processes* that can be derived from real-world observations.  
@@ -37,7 +36,14 @@ By providing an agent with a *goal* in space, coupled with the use of drums as *
 
 The main advantage is that the user would compose in a semantically rich and intuitive space(3D world) populated by intuitive objects (entities) rather than a space of buttons, knobs and MIDI files.   
 
-However, this approach imposes the setup of a simulation environment and the refinement of algorithms that recover semantically relevant physical properties from sounds.  
+This approach imposes the setup of a simulation environment and more refined audio analysis algorithms.
+
+Below are searly experiments in Unity.
+
+https://github.com/user-attachments/assets/b9272725-deaa-4445-93e1-3b05b1136834
+
+https://github.com/user-attachments/assets/a0526745-8a50-4353-ac46-40ba09ef13a4
+
 
 <a id="animacy">
   
@@ -78,8 +84,11 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
 
 <details>
   <summary>Examples:</summary>
-<img src= "https://user-images.githubusercontent.com/75185852/199851952-30525228-27ca-4f32-9f7f-a04768d41703.mp4" width="500"/>
-<img src= "https://user-images.githubusercontent.com/75185852/199347450-c1074afa-6426-4ecd-a25b-dc19c0291554.mp4" width="500"/>
+  
+https://user-images.githubusercontent.com/75185852/199851952-30525228-27ca-4f32-9f7f-a04768d41703.mp4
+  
+https://user-images.githubusercontent.com/75185852/199347450-c1074afa-6426-4ecd-a25b-dc19c0291554.mp4
+  
 </details>
 
 </details>
