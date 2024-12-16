@@ -1153,7 +1153,7 @@ function addGUI() {
   dfFolder.add(params, 'scale_x', 0.1, 10).step(0.1).name('Scale X').onChange(updateUniforms);
   dfFolder.add(params, 'scale_y', 0.1, 10).step(0.1).name('Scale Y').onChange(updateUniforms);
   dfFolder.add(params, 'scale_z', 0.1, 10).step(0.1).name('Scale Z').onChange(updateUniforms);
-  dfFolder.add(params, 'global_scale', 0.01, 1).step(0.01).name('Global Scale').onChange(updateUniforms);
+  dfFolder.add(params, 'global_scale', 0.01, 0.1).step(0.01).name('Global Scale').onChange(updateUniforms);
 
   dfFolder.add(params, 'min_dist', 0, 1).step(0.01).name('Min Distance').onChange(updateUniforms);
   dfFolder.add(params, 'max_dist', 0, 1).step(0.01).name('Max Distance').onChange(updateUniforms);
