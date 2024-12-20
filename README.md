@@ -60,11 +60,9 @@ DiffImpact: Differentiable Rendering and Identification of Impact Sounds(2021)](
 </details>
  
 ## [Spatial symbolic system](https://a-sumo.github.io/hyperstep/)
-Demo in Lens Studio: 
+Spectacles Lens in Lens Studio 5: 
 
-
-https://github.com/user-attachments/assets/6facefdb-87a4-4f3c-a5a0-31680fbd94bc
-
+https://github.com/user-attachments/assets/6a6a3ab7-cfad-42f5-96af-802fe82c500d
 
 <details>
 <summary>Project Description</summary>
